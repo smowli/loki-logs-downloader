@@ -1,14 +1,15 @@
 import { program } from 'commander';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
+import pkg from '../package.json';
 
-const toNum = (v: string) => Number(v);
+const toNumber = (v: string) => Number(v);
 
 program
 	// ==================================================
-	.name('loki-logs-downloader')
-	.description('CLI for downloading logs from Loki API')
-	.version('1.0.0')
+	.name(pkg.name)
+	.description(pkg.description)
+	.version(pkg.version)
 	// ==================================================
 	.option('-q --query <loki_query>')
 	.option('-u --lokiUrl <url>')
@@ -20,22 +21,22 @@ program
 	.option(
 		'-tll --totalLinesLimit <number>',
 		'Limit of total lines to download',
-		toNum //
+		toNumber //
 	)
 	.option(
 		'-fll --fileLinesLimit <number>',
 		'Limit of lines outputted to each file',
-		toNum //
+		toNumber //
 	)
 	.option(
 		'-bll --batchLinesLimit <number>',
 		'Limit of lines fetched from Loki API in one request',
-		toNum //
+		toNumber //
 	)
 	.option(
 		'--coolDown <timeMs>',
 		'Time to wait between fetching next batch of lines from Loki API',
-		toNum //
+		toNumber //
 	)
 	.option('--clearOutputDir')
 	// ==================================================
