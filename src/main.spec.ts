@@ -15,7 +15,7 @@ beforeAll(async () => {
 	await remove(ROOT_OUTPUT_DIR);
 });
 
-it.only(`downloads logs & outputs files with correct data`, async () => {
+it(`downloads logs & outputs files with correct data`, async () => {
 	/*
 		- TESTED CASE: 
 			- fetch in batch of 100
