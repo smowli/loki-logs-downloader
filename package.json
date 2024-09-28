@@ -1,0 +1,26 @@
+{
+	"name": "loki-logs-downloader",
+	"license": "MIT",
+	"scripts": {
+		"exec": "tsx ./src/cli.ts -c ./config.json",
+		"test": "vitest run --passWithNoTests --exclude=src/integration.spec.ts",
+		"test:all": "vitest run",
+		"test:dev": "vitest --passWithNoTests --exclude=src/integration.spec.ts",
+		"test:integration": "vitest src/integration.spec.ts"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "^11.0.4",
+		"@types/md5": "^2.3.5",
+		"@types/prompts": "^2.4.9",
+		"tsx": "^4.19.1",
+		"vitest": "^2.1.1"
+	},
+	"dependencies": {
+		"commander": "^12.1.0",
+		"fs-extra": "^11.2.0",
+		"glob": "^11.0.0",
+		"md5": "^2.3.0",
+		"prompts": "^2.4.2",
+		"zod": "^3.23.8"
+	}
+}
