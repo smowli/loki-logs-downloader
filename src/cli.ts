@@ -1,6 +1,6 @@
+import { program } from 'commander';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
-import { program } from 'commander';
 
 const toNum = (v: string) => Number(v);
 

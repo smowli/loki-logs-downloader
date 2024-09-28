@@ -4,6 +4,7 @@ import { EOL } from 'os';
 import { join } from 'path';
 import { beforeAll, expect, it } from 'vitest';
 import { DEFAULT_LOKI_URL, FOLDERS } from './constants';
+import { createLokiClient } from './loki';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
 import { getNanoseconds } from './util';
@@ -79,14 +80,13 @@ async function setupLoki({
 	lokiUrl: string;
 	findQuery: string;
 }) {
-	const existingData = await fetch(
-		`${lokiUrl}/loki/api/v1/query_range?query=${encodeURIComponent(findQuery)}`
-	);
+	const lokiClient = createLokiClient(lokiUrl);
 
-	const data = await existingData.json();
+	const existingData = await lokiClient.query_range({ query: findQuery });
 
 	const dataExists =
-		data.status === 'success' && data.data.result.some((record: any) => record.values.length !== 0);
+		existingData.status === 'success' &&
+		existingData.data.result.some((record: any) => record.values.length !== 0);
 
 	if (!dataExists) {
 		console.log('pushing test logs to loki');
@@ -95,24 +95,18 @@ async function setupLoki({
 		const batches = Math.ceil(lineCount / batchSize);
 
 		for (let batchNumber = 0; batchNumber < batches; batchNumber++) {
-			const response = await fetch(`${lokiUrl}/loki/api/v1/push`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					streams: [
-						{
-							stream: labels,
-							values: Array.from({ length: 1000 }).map((_, index) => {
-								return [
-									getNanoseconds().toString(),
-									`log line: ${batchNumber * batchSize + (index + 1)}`,
-								];
-							}),
-						},
-					],
-				}),
+			const response = await lokiClient.push({
+				streams: [
+					{
+						stream: labels,
+						values: Array.from({ length: 1000 }).map((_, index) => {
+							return [
+								getNanoseconds().toString(),
+								`log line: ${batchNumber * batchSize + (index + 1)}`,
+							];
+						}),
+					},
+				],
 			});
 
 			console.log('Loki response:', await response.text());

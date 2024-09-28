@@ -1,6 +1,5 @@
-import { expect, it, vitest } from 'vitest';
+import { expect, it, vitest, describe } from 'vitest';
 import { getNanoseconds, nanosecondsToMilliseconds, retry } from './util';
-import { describe } from 'node:test';
 
 describe(retry.name, async () => {
 	it('works', async () => {

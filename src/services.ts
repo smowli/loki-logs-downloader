@@ -11,7 +11,7 @@ import {
 import md5 from 'md5';
 import { dirname, join } from 'path';
 import { FOLDERS } from './constants';
-import { BaseError, LOKI_API_ERRORS, MaxEntriesLimitPerQueryExceeded } from './error';
+import { createLokiClient } from './loki';
 
 interface State {
 	startFromTimestamp: string;
@@ -168,28 +168,12 @@ export type FetcherFactory = () => Promise<{
 export const createFetcher: FetcherFactory = async () => {
 	return {
 		init({ lokiUrl }) {
+			const lokiClient = createLokiClient(lokiUrl);
+
 			return async ({ query, limit, from, to }) => {
 				const lineCount = limit + 1; // +1 for pointer
 
-				const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
-				url.searchParams.set('direction', 'FORWARD');
-				url.searchParams.set('query', query);
-				url.searchParams.set('limit', lineCount.toString());
-				url.searchParams.set('start', from.toString());
-				url.searchParams.set('end', to.toISOString());
-
-				const response = await fetch(url);
-
-				if (!response.ok) {
-					const responseText = await response.text();
-					if (responseText.includes(LOKI_API_ERRORS.queryMaxLimit)) {
-						throw new MaxEntriesLimitPerQueryExceeded();
-					}
-
-					throw new BaseError(responseText);
-				}
-
-				const data = await response.json();
+				const data = await lokiClient.query_range({ query, limit: lineCount, from, to });
 
 				const output = data.data.result.flatMap((stream: any) => {
 					return stream.values.flatMap(([timestamp, line]: any) => {
