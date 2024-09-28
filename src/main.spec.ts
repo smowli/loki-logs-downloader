@@ -2,7 +2,7 @@ import { readFile, remove } from 'fs-extra';
 import { glob } from 'glob';
 import { EOL } from 'os';
 import { join } from 'path';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { DEFAULT_LOKI_URL, FOLDERS } from './constants';
 import { Config, main } from './main';
 import { createFileSystem, createLogger, createStateStore, Fetcher, LokiRecord } from './services';
@@ -194,6 +194,39 @@ it(`downloads logs & recovers state`, async () => {
 	);
 
 	expect(downloadFiles[0].length).toBe(590);
+});
+
+it('uses config file if option is set', async () => {
+	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'config-test');
+
+	const configFilePath = '/app/usr/config.json';
+
+	const testFs = createFileSystem(OUTPUT_DIR);
+	const readJsonMock = vitest.fn().mockImplementation(path => {
+		if (path === configFilePath) {
+			return {
+				query: '{}',
+				lokiUrl: DEFAULT_LOKI_URL,
+			};
+		}
+
+		return testFs.readJson(path);
+	});
+
+	await main({
+		fetcherFactory: async () => testFetcherFactory({ totalLines: 0 }),
+		fileSystemFactory: () => ({
+			...testFs,
+			readJson: readJsonMock,
+		}),
+		stateStoreFactory: createStateStore,
+		loggerFactory: () => createLogger('error'),
+		options: {
+			configFile: configFilePath,
+		},
+	});
+
+	expect(readJsonMock).toBeCalledWith(configFilePath);
 });
 
 describe('different options', () => {
