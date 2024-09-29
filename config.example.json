@@ -2,5 +2,6 @@
 	"query": "{app=\"test\"}",
 	"outputName": "test",
 	"coolDown": 1000,
-	"lokiUrl": "http://localhost:3100"
+	"lokiUrl": "http://localhost:3100",
+	"promptToStart": true
 }

@@ -24,6 +24,7 @@ const configSchema = z.object({
 	totalLinesLimit: z.number().min(1).optional(),
 	fileLinesLimit: z.number().min(1).optional(),
 	batchLinesLimit: z.number().min(1).default(2000),
+	promptToStart: z.boolean().default(true),
 });
 
 export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {
@@ -74,7 +75,21 @@ export async function main({
 			batchLinesLimit, // split file into multiple requests to ease the load to api
 			outputFolder,
 			clearOutputDir: forceClearOutput,
+			promptToStart,
 		} = configSchema.parse(config);
+
+		if (promptToStart) {
+			const startDownload = await prompts({
+				type: 'confirm',
+				name: 'start',
+				message: `Start the download?`,
+			});
+
+			if (!startDownload.start) {
+				throw new Error('TODO');
+				// TODO: Do exit instead of error
+			}
+		}
 
 		// ### loop variables
 
