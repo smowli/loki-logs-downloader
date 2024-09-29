@@ -21,6 +21,28 @@
 	"bugs": {
 		"url": "https://github.com/vosmol/loki-logs-downloader/issues"
 	},
+	"release-it": {
+		"$schema": "https://unpkg.com/release-it/schema/release-it.json",
+		"plugins": {
+			"@release-it/conventional-changelog": {
+				"preset": {
+					"name": "conventionalcommits",
+					"types": [
+						{
+							"type": "feat",
+							"section": "Features 🚀"
+						},
+						{
+							"type": "fix",
+							"section": "Bug Fixes 🦗"
+						},
+						{}
+					]
+				},
+				"infile": "CHANGELOG.md"
+			}
+		}
+	},
 	"publishConfig": {
 		"access": "restricted",
 		"ignore": [
@@ -54,7 +76,8 @@
 		"lint:fix-all": "npm run lint:fix .",
 		"prepack": "npmignore --auto",
 		"prepare": "husky",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"release": "release-it"
 	},
 	"lint-staged": {
 		"*": [
@@ -64,6 +87,7 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.11.1",
+		"@release-it/conventional-changelog": "^8.0.2",
 		"@types/fs-extra": "^11.0.4",
 		"@types/md5": "^2.3.5",
 		"@types/prompts": "^2.4.9",
@@ -74,6 +98,7 @@
 		"lint-staged": "^15.2.10",
 		"npmignore": "^0.3.1",
 		"prettier": "^3.3.3",
+		"release-it": "^17.6.0",
 		"tsup": "^8.3.0",
 		"tsx": "^4.19.1",
 		"typescript-eslint": "^8.7.0",
