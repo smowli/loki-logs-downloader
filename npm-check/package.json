@@ -3,9 +3,11 @@
 	"scripts": {
 		"test:cli": "loki-logs-downloader -u http://localhost:3100 -q '{app=\"test\"}' --coolDown 1000",
 		"test:sdk-ts": "tsx ./sdk.ts",
-		"test:sdk-js": "node ./sdk.js"
+		"test:sdk-cjs": "node ./sdk.cjs",
+		"test:sdk-esm": "node ./sdk.mjs",
+		"pull": "npm install @vosmol/loki-logs-downloader@latest"
 	},
 	"dependencies": {
-		"@vosmol/loki-logs-downloader": "^1.1.10"
+		"@vosmol/loki-logs-downloader": "^1.1.13"
 	}
 }
