@@ -4,14 +4,14 @@ import {
 	ensureDir,
 	exists,
 	pathExists,
-	readdir,
 	readJson,
+	readdir,
 	writeFile,
 } from 'fs-extra';
-import md5 from 'md5';
 import { dirname, join } from 'path';
 import { FOLDERS } from './constants';
 import { createLokiClient } from './loki';
+import md5 from 'md5';
 
 interface State {
 	startFromTimestamp: string;
