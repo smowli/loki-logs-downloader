@@ -12,13 +12,14 @@
 		"format:fix": "prettier --write --cache --ignore-unknown",
 		"format:fix-all": "npm run format:fix .",
 		"lint": "eslint",
-		"lint:fix": "eslint --fix cache",
-		"lint:fix-all": "npm run lint:fix ."
+		"lint:fix": "eslint --fix --cache",
+		"lint:fix-all": "npm run lint:fix .",
+		"postinstall": "husky"
 	},
 	"lint-staged": {
 		"*": [
-			"lint:fix",
-			"format:fix"
+			"npm run lint:fix",
+			"npm run format:fix"
 		]
 	},
 	"devDependencies": {
@@ -29,6 +30,7 @@
 		"eslint": "^9.11.1",
 		"eslint-config-prettier": "^9.1.0",
 		"globals": "^15.9.0",
+		"husky": "^9.1.6",
 		"lint-staged": "^15.2.10",
 		"prettier": "^3.3.3",
 		"tsx": "^4.19.1",
