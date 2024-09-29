@@ -4,7 +4,12 @@ import pluginJs from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default [
-	{ files: ['**/*.{js,mjs,cjs,ts}'] },
+	{
+		files: ['**/*.{js,mjs,cjs,ts}'],
+	},
+	{
+		ignores: ['npm-check/**/*', 'dist/**/*', 'test-outputs/**/*', 'output/**/*'],
+	},
 	{ languageOptions: { globals: globals.node } },
 	pluginJs.configs.recommended,
 	...tseslint.configs.recommended,
@@ -12,6 +17,7 @@ export default [
 	{
 		rules: {
 			'no-useless-catch': 'off',
+			'@typescript-eslint/no-explicit-any': 'off', // TODO: Enable later
 		},
 	},
 ];

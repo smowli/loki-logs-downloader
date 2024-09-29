@@ -1,9 +1,13 @@
+#!/usr/bin/env node
+
 import { program } from 'commander';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
 import pkg from '../package.json';
 
 const toNumber = (v: string) => Number(v);
+
+console.log(`\n=== Loki log downloader version: ${pkg.version} 👋 ===\n`);
 
 program
 	// ==================================================
@@ -40,13 +44,13 @@ program
 	)
 	.option('--clearOutputDir')
 	// ==================================================
-	.action(async options => {
+	.action(async params => {
 		await main({
 			loggerFactory: createLogger,
 			stateStoreFactory: createStateStore,
 			fileSystemFactory: createFileSystem,
 			fetcherFactory: createFetcher,
-			options: options as any, // no worries, these are parsed and validated further
+			config: params as any, // no worries, these are parsed and validated further
 		});
 	});
 

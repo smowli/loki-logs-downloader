@@ -43,7 +43,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
-		options: {
+		config: {
 			outputName: OUTPUT_NAME,
 			query: '{app="test"}',
 			lokiUrl: DEFAULT_LOKI_URL,
@@ -137,7 +137,7 @@ it(`downloads logs & recovers state`, async () => {
 			fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 			stateStoreFactory: createStateStore,
 			loggerFactory: () => createLogger('error'),
-			options: {
+			config: {
 				outputName: OUTPUT_NAME,
 				query: '{app="test"}',
 				lokiUrl: DEFAULT_LOKI_URL,
@@ -221,7 +221,7 @@ it('uses config file if option is set', async () => {
 		}),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
-		options: {
+		config: {
 			configFile: configFilePath,
 		},
 	});
@@ -229,8 +229,8 @@ it('uses config file if option is set', async () => {
 	expect(readJsonMock).toBeCalledWith(configFilePath);
 });
 
-describe('different options', () => {
-	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'all-options-test');
+describe('different configs', () => {
+	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'all-configs-test');
 
 	beforeEach(async () => {
 		await remove(OUTPUT_DIR);
@@ -243,8 +243,8 @@ describe('different options', () => {
 		[{ batchLinesLimit: 10 }, { files: 1, fetcherCalls: 98 }],
 		[{ batchLinesLimit: 5000 }, { files: 1, fetcherCalls: 1 }],
 	] as Array<[Partial<Config>, { files: number; fetcherCalls: 1 }]>)(
-		`%s options behave as expected`,
-		async (options, result) => {
+		`%s configs behave as expected`,
+		async (configs, result) => {
 			const testFetcher = testFetcherFactory({ totalLines: 971 });
 
 			await main({
@@ -252,12 +252,12 @@ describe('different options', () => {
 				fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 				stateStoreFactory: createStateStore,
 				loggerFactory: () => createLogger('error'),
-				options: {
+				config: {
 					outputName: OUTPUT_NAME,
 					query: '{app="test"}',
 					lokiUrl: DEFAULT_LOKI_URL,
 					coolDown: null,
-					...options,
+					...configs,
 				},
 			});
 
@@ -324,16 +324,16 @@ describe('state files', () => {
 		],
 	] as Array<[keyof Config, ...Partial<Config>[]]>)(
 		`generates new state file when %s changes`,
-		async (...testOptions) => {
-			const [, ...options] = testOptions;
+		async (...testConfigs) => {
+			const [, ...configs] = testConfigs;
 
-			for (const option of options) {
+			for (const option of configs) {
 				await main({
 					fetcherFactory: async () => testFetcherFactory({ totalLines: 0 }),
 					fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 					stateStoreFactory: createStateStore,
 					loggerFactory: () => createLogger('error'),
-					options: {
+					config: {
 						outputName: OUTPUT_NAME,
 						query: '{app="test"}',
 						lokiUrl: DEFAULT_LOKI_URL,
@@ -347,7 +347,7 @@ describe('state files', () => {
 				`${join(OUTPUT_DIR, FOLDERS.internal, FOLDERS.state, '*.json')}`
 			);
 
-			expect(stateFilesPath.length).toBe(options.length);
+			expect(stateFilesPath.length).toBe(configs.length);
 		}
 	);
 });

@@ -1,18 +1,16 @@
 {
-	"name": "loki-logs-downloader",
+	"name": "@vosmol/loki-logs-downloader",
 	"description": "CLI for downloading logs from Loki API",
-	"version": "1.0.0",
+	"version": "1.1.10",
 	"license": "MIT",
 	"keywords": [
 		"loki"
 	],
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
-	"author": {
-		"name": "Vojtech Smolar",
-		"url": "https://vosmol.com/"
-	},
+	"main": "./src/sdk.ts",
+	"bin": "./dist/cli.js",
 	"homepage": "https://github.com/vosmol/loki-logs-downloader/",
 	"repository": {
 		"type": "git",
@@ -21,8 +19,27 @@
 	"bugs": {
 		"url": "https://github.com/vosmol/loki-logs-downloader/issues"
 	},
+	"publishConfig": {
+		"access": "restricted",
+		"ignore": [
+			"npm-check",
+			"src/*.spec.ts",
+			"src/cli.ts",
+			".husky/",
+			".editorconfig",
+			".nvmrc",
+			"config.example.json",
+			"docker-compose.yaml",
+			"eslint.config.mjs",
+			"prettier.config.cjs",
+			"tsconfig.json",
+			"vitest.config.ts"
+		]
+	},
 	"scripts": {
-		"exec": "tsx ./src/cli.ts -c ./config.json",
+		"build": "esbuild ./src/cli.ts --bundle --platform=node --target=node18 --outfile=./dist/cli.js",
+		"exec": "npm run build && node ./dist/cli.js -c ./config.json",
+		"exec:dev": "tsx ./src/cli.ts -c ./config.json",
 		"test": "vitest run --passWithNoTests --exclude=src/integration.spec.ts",
 		"test:all": "vitest run",
 		"test:dev": "vitest --passWithNoTests --exclude=src/integration.spec.ts",
@@ -32,7 +49,9 @@
 		"lint": "eslint",
 		"lint:fix": "eslint --fix --cache",
 		"lint:fix-all": "npm run lint:fix .",
-		"postinstall": "husky"
+		"prepack": "npmignore --auto",
+		"prepare": "husky",
+		"prepublishOnly": "npm run build"
 	},
 	"lint-staged": {
 		"*": [
@@ -45,11 +64,13 @@
 		"@types/fs-extra": "^11.0.4",
 		"@types/md5": "^2.3.5",
 		"@types/prompts": "^2.4.9",
+		"esbuild": "0.24.0",
 		"eslint": "^9.11.1",
 		"eslint-config-prettier": "^9.1.0",
 		"globals": "^15.9.0",
 		"husky": "^9.1.6",
 		"lint-staged": "^15.2.10",
+		"npmignore": "^0.3.1",
 		"prettier": "^3.3.3",
 		"tsx": "^4.19.1",
 		"typescript-eslint": "^8.7.0",

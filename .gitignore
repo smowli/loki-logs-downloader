@@ -4,6 +4,8 @@
 output
 .internal
 test-outputs
+*.tgz
+package
 
 # config
 config.json
@@ -14,9 +16,10 @@ tmp
 out-tsc
 
 # dev stuff
-proxy/ssl
 coverage
-.wrangler
+.npmignore
+.eslintcache
+npm-check/package-lock.json
 
 # terraform
 .terraform

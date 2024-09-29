@@ -67,7 +67,7 @@ export const createLokiClient = (lokiUrl: string) => {
 				throw new LokiApiError(responseText);
 			}
 
-			return response.json();
+			return;
 		},
 	};
 };

@@ -36,7 +36,7 @@ it('Downloads logs from real loki API', {}, async () => {
 		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
-		options: {
+		config: {
 			query: TEST_QUERY,
 			lokiUrl: lokiUrl,
 			coolDown: 300,
@@ -95,7 +95,7 @@ async function setupLoki({
 		const batches = Math.ceil(lineCount / batchSize);
 
 		for (let batchNumber = 0; batchNumber < batches; batchNumber++) {
-			const response = await lokiClient.push({
+			await lokiClient.push({
 				streams: [
 					{
 						stream: labels,
@@ -108,8 +108,6 @@ async function setupLoki({
 					},
 				],
 			});
-
-			console.log('Loki response:', await response.text());
 		}
 	}
 }

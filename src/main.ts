@@ -20,7 +20,7 @@ const configSchema = z.object({
 	outputName: z.string().min(1).default(FOLDERS.defaultDownloadsDir),
 	query: z.string({ required_error: 'query param is required' }).min(1),
 	lokiUrl: z.string().min(1),
-	coolDown: z.number().nullable().default(20_000),
+	coolDown: z.number().nullable().default(10_000),
 	totalLinesLimit: z.number().min(1).optional(),
 	fileLinesLimit: z.number().min(1).optional(),
 	batchLinesLimit: z.number().min(1).default(2000),
@@ -36,13 +36,13 @@ export async function main({
 	stateStoreFactory,
 	fileSystemFactory,
 	fetcherFactory,
-	options,
+	config,
 }: {
 	loggerFactory: LoggerFactory;
 	stateStoreFactory: StateStoreFactory;
 	fileSystemFactory: FileSystemFactory;
 	fetcherFactory: FetcherFactory;
-	options: Partial<Config>;
+	config: Partial<Config>;
 }) {
 	try {
 		const logger = loggerFactory();
@@ -50,17 +50,17 @@ export async function main({
 		const stateStoreInstance = stateStoreFactory({ fs, logger });
 		const fetcherInstance = await fetcherFactory();
 
-		// ### use json config file instead cmd options if configured
+		// ### use json config file instead cmd params if configured
 
 		const { configFile } = configSchema
 			.pick({ configFile: true })
-			.parse({ configFile: options.configFile });
+			.parse({ configFile: config.configFile });
 
 		if (configFile) {
-			options = (await fs.readJson(configFile)) as Config;
+			config = (await fs.readJson(configFile)) as Config;
 		}
 
-		// ### validate config options
+		// ### validate config
 
 		const {
 			from: fromDate,
@@ -74,7 +74,7 @@ export async function main({
 			batchLinesLimit, // split file into multiple requests to ease the load to api
 			outputFolder,
 			clearOutputDir: forceClearOutput,
-		} = configSchema.parse(options);
+		} = configSchema.parse(config);
 
 		// ### loop variables
 
