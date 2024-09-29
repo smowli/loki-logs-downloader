@@ -22,9 +22,9 @@ describe(retry.name, async () => {
 
 describe(getNanoseconds.name, () => {
 	it('works', () => {
-		const date = new Date('2024/9/27');
+		const date = new Date('2024-09-12:00:00.000Z');
 
-		expect(getNanoseconds(date)).toBe(1727388000000000000n);
+		expect(getNanoseconds(date)).toBe(1726099200000000000n);
 	});
 });
 

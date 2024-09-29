@@ -35,8 +35,7 @@
 						{
 							"type": "fix",
 							"section": "Bug Fixes 🦗"
-						},
-						{}
+						}
 					]
 				},
 				"infile": "CHANGELOG.md"
@@ -46,10 +45,10 @@
 	"publishConfig": {
 		"access": "restricted",
 		"ignore": [
-			"npm-check",
-			"src/*.spec.ts",
-			"src/cli.ts",
+			".github/",
 			".husky/",
+			"npm-check/",
+			"src/",
 			".editorconfig",
 			".nvmrc",
 			".prettierignore",
