@@ -47,9 +47,10 @@ export const createLokiClient = (lokiUrl: string) => {
 				throw new LokiApiError(responseText);
 			}
 
+			// TODO: Parse & type response -> remove any types
+
 			return response.json();
 		},
-
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);
 
