@@ -113,9 +113,8 @@ export async function main({
 
 		const outputDirPath = join(outputFolder, outputName);
 
-		const { exists: outputDirExists, isEmpty: outputDirIsEmpty } = await fs.getDirData(
-			outputDirPath
-		);
+		const { exists: outputDirExists, isEmpty: outputDirIsEmpty } =
+			await fs.getDirData(outputDirPath);
 
 		if (
 			outputDirExists &&

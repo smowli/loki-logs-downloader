@@ -8,13 +8,33 @@
 		"test": "vitest run --passWithNoTests --exclude=src/integration.spec.ts",
 		"test:all": "vitest run",
 		"test:dev": "vitest --passWithNoTests --exclude=src/integration.spec.ts",
-		"test:integration": "vitest src/integration.spec.ts"
+		"test:integration": "vitest src/integration.spec.ts",
+		"format:fix": "prettier --write --cache --ignore-unknown",
+		"format:fix-all": "npm run format:fix .",
+		"lint": "eslint",
+		"lint:fix": "eslint --fix --cache",
+		"lint:fix-all": "npm run lint:fix .",
+		"postinstall": "husky"
+	},
+	"lint-staged": {
+		"*": [
+			"npm run lint:fix",
+			"npm run format:fix"
+		]
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.11.1",
 		"@types/fs-extra": "^11.0.4",
 		"@types/md5": "^2.3.5",
 		"@types/prompts": "^2.4.9",
+		"eslint": "^9.11.1",
+		"eslint-config-prettier": "^9.1.0",
+		"globals": "^15.9.0",
+		"husky": "^9.1.6",
+		"lint-staged": "^15.2.10",
+		"prettier": "^3.3.3",
 		"tsx": "^4.19.1",
+		"typescript-eslint": "^8.7.0",
 		"vitest": "^2.1.1"
 	},
 	"dependencies": {

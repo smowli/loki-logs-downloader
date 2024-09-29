@@ -5,7 +5,7 @@ import { join } from 'path';
 import { beforeAll, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { DEFAULT_LOKI_URL, FOLDERS } from './constants';
 import { Config, main } from './main';
-import { createFileSystem, createLogger, createStateStore, Fetcher, LokiRecord } from './services';
+import { Fetcher, LokiRecord, createFileSystem, createLogger, createStateStore } from './services';
 import { getNanoseconds, nanosecondsToMilliseconds, retry } from './util';
 
 const ROOT_OUTPUT_DIR = 'test-outputs';
@@ -325,7 +325,7 @@ describe('state files', () => {
 	] as Array<[keyof Config, ...Partial<Config>[]]>)(
 		`generates new state file when %s changes`,
 		async (...testOptions) => {
-			const [_, ...options] = testOptions;
+			const [, ...options] = testOptions;
 
 			for (const option of options) {
 				await main({
@@ -358,12 +358,12 @@ function testFetcherFactory(options: {
 }): {
 	init: (options: { lokiUrl: string }) => Fetcher;
 	testData: () => {
-		lastTimestamp: BigInt | undefined;
+		lastTimestamp: bigint | undefined;
 		batchTimestamps: { from: Date; to: Date }[];
 		called: number;
 	};
 } {
-	let lastTimestamp: BigInt | undefined;
+	let lastTimestamp: bigint | undefined;
 	let called = 0;
 	const batchTimestamps: { from: Date; to: Date }[] = [];
 	let remainingLines = options.totalLines;

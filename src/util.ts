@@ -22,7 +22,7 @@ export function getNanoseconds(date?: Date) {
 	return nowMs * BigInt(1e6) + BigInt(nowNs);
 }
 
-export function nanosecondsToMilliseconds(nanoseconds: number | BigInt) {
+export function nanosecondsToMilliseconds(nanoseconds: number | bigint) {
 	// we have to round, sometimes there is float math inaccuracy which leads to off 1 errors
 	return Math.round(Number(nanoseconds) / 1e6);
 }
