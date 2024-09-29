@@ -3,6 +3,24 @@
 	"description": "CLI for downloading logs from Loki API",
 	"version": "1.0.0",
 	"license": "MIT",
+	"keywords": [
+		"loki"
+	],
+	"engines": {
+		"node": ">=18"
+	},
+	"author": {
+		"name": "Vojtech Smolar",
+		"url": "https://vosmol.com/"
+	},
+	"homepage": "https://github.com/vosmol/loki-logs-downloader/",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/vosmol/loki-logs-downloader/"
+	},
+	"bugs": {
+		"url": "https://github.com/vosmol/loki-logs-downloader/issues"
+	},
 	"scripts": {
 		"exec": "tsx ./src/cli.ts -c ./config.json",
 		"test": "vitest run --passWithNoTests --exclude=src/integration.spec.ts",
