@@ -44,6 +44,7 @@ it('Downloads logs from real loki API', {}, async () => {
 			totalLinesLimit: totalLinesLimit,
 			batchLinesLimit: 1005,
 			fileLinesLimit: 1234,
+			promptToStart: false,
 		},
 	});
 

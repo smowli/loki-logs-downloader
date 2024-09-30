@@ -47,11 +47,12 @@
 		"ignore": [
 			".github/",
 			".husky/",
-			"npm-check/",
+			"dev/",
 			"src/",
 			".editorconfig",
 			".nvmrc",
 			".prettierignore",
+			"CHANGELOG.md",
 			"config.example.json",
 			"docker-compose.yaml",
 			"eslint.config.mjs",
@@ -76,7 +77,8 @@
 		"prepack": "npmignore --auto",
 		"prepare": "husky",
 		"prepublishOnly": "npm run build",
-		"release": "release-it"
+		"release": "release-it",
+		"generate-config-schema": "tsx ./dev/config-schema.mts"
 	},
 	"lint-staged": {
 		"*": [
@@ -109,6 +111,7 @@
 		"glob": "^11.0.0",
 		"md5": "^2.3.0",
 		"prompts": "^2.4.2",
-		"zod": "^3.23.8"
+		"zod": "^3.23.8",
+		"zod-to-json-schema": "^3.23.3"
 	}
 }

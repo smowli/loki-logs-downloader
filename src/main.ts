@@ -3,27 +3,75 @@ import { join } from 'path';
 import { exit } from 'process';
 import prompts from 'prompts';
 import { z } from 'zod';
-import { END_OF_TODAY, FOLDERS, START_OF_TODAY } from './constants';
+import { FOLDERS } from './constants';
 import { FetcherFactory, FileSystemFactory, LoggerFactory, StateStoreFactory } from './services';
-import { getNanoseconds, wait } from './util';
+import { getNanoseconds, hoursToMs, wait } from './util';
 
 const dateString = z.preprocess((v: unknown) => {
 	if (typeof v === 'string') return new Date(v);
 }, z.date());
 
-const configSchema = z.object({
-	from: dateString.default(START_OF_TODAY.toISOString()),
-	to: dateString.default(END_OF_TODAY.toISOString()),
-	configFile: z.string().min(1).optional(),
-	clearOutputDir: z.boolean().default(false),
-	outputFolder: z.string().min(1).default(FOLDERS.defaultOutputDir),
-	outputName: z.string().min(1).default(FOLDERS.defaultDownloadsDir),
-	query: z.string({ required_error: 'query param is required' }).min(1),
-	lokiUrl: z.string().min(1),
-	coolDown: z.number().nullable().default(10_000),
-	totalLinesLimit: z.number().min(1).optional(),
-	fileLinesLimit: z.number().min(1).optional(),
-	batchLinesLimit: z.number().min(1).default(2000),
+export const configSchema = z.object({
+	configFile: z
+		.string()
+		.min(1)
+		.optional()
+		.describe(
+			'Path to the JSON configuration file. If provided, all listed options will be read from this file instead.'
+		),
+	from: dateString
+		.default(new Date(Date.now() - hoursToMs(1)).toISOString())
+		.describe(
+			'Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour.'
+		),
+	to: dateString
+		.default(new Date().toISOString())
+		.describe(
+			'Represents the ending timestamp until which the logs will be queried. Defaults to now.'
+		),
+	clearOutputDir: z
+		.boolean()
+		.default(false)
+		.describe('If true, clears the specified output directory without prompting.'),
+	outputFolder: z
+		.string()
+		.min(1)
+		.default(FOLDERS.defaultOutputDir)
+		.describe('Path to a folder that will contain subfolders for separate query downloads.'),
+	outputName: z
+		.string()
+		.min(1)
+		.default(FOLDERS.defaultDownloadsDir)
+		.describe('Name of the folder that will contain the downloaded files.'),
+	query: z
+		.string({ required_error: 'query param is required' })
+		.min(1)
+		.describe('A Loki query written in standard format.'),
+	lokiUrl: z.string().min(1).describe('Base URL of Loki API instance.'),
+	coolDown: z
+		.number()
+		.nullable()
+		.default(10_000)
+		.describe('Time to wait between fetching the next batch of lines from the Loki API.'),
+	totalLinesLimit: z
+		.number()
+		.min(1)
+		.optional()
+		.describe('Limit on the total number of lines to download.'),
+	fileLinesLimit: z
+		.number()
+		.min(1)
+		.optional()
+		.describe('Limit on the number of lines outputted to each file.'),
+	batchLinesLimit: z
+		.number()
+		.min(1)
+		.default(2000)
+		.describe('Limit on the number of lines fetched from the Loki API in a single request.'),
+	promptToStart: z
+		.boolean()
+		.default(true)
+		.describe('Ask for confirmation before the download starts.'),
 });
 
 export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {
@@ -74,7 +122,21 @@ export async function main({
 			batchLinesLimit, // split file into multiple requests to ease the load to api
 			outputFolder,
 			clearOutputDir: forceClearOutput,
+			promptToStart,
 		} = configSchema.parse(config);
+
+		if (promptToStart) {
+			const startDownload = await prompts({
+				type: 'confirm',
+				name: 'start',
+				message: `Start the download?`,
+			});
+
+			if (!startDownload.start) {
+				throw new Error('TODO');
+				// TODO: Do exit instead of error
+			}
+		}
 
 		// ### loop variables
 

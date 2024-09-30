@@ -19,7 +19,7 @@ out-tsc
 coverage
 .npmignore
 .eslintcache
-npm-check/package-lock.json
+dev/npm-check/package-lock.json
 
 # terraform
 .terraform

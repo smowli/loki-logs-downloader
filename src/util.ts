@@ -26,3 +26,7 @@ export function nanosecondsToMilliseconds(nanoseconds: number | bigint) {
 	// we have to round, sometimes there is float math inaccuracy which leads to off 1 errors
 	return Math.round(Number(nanoseconds) / 1e6);
 }
+
+export function hoursToMs(hours: number) {
+	return hours * 60 * 60 * 1000;
+}
