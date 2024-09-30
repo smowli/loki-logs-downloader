@@ -1,0 +1,78 @@
+{
+	"type": "object",
+	"properties": {
+		"configFile": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Path to the JSON configuration file. If provided, all listed options will be read from this file instead."
+		},
+		"from": {
+			"type": "string",
+			"format": "date-time",
+			"default": "2024-09-30T18:36:15.690Z",
+			"description": "Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour"
+		},
+		"to": {
+			"type": "string",
+			"format": "date-time",
+			"default": "2024-09-30T19:36:15.691Z",
+			"description": "Represents the ending timestamp until which the logs will be queried. Defaults to now"
+		},
+		"clearOutputDir": {
+			"type": "boolean",
+			"default": false,
+			"description": "If true, clears the specified output directory without prompting."
+		},
+		"outputFolder": {
+			"type": "string",
+			"minLength": 1,
+			"default": "output",
+			"description": "Path to a folder that will contain subfolders for separate query downloads."
+		},
+		"outputName": {
+			"type": "string",
+			"minLength": 1,
+			"default": "download",
+			"description": "Name of the folder that will contain the downloaded files."
+		},
+		"query": {
+			"type": "string",
+			"minLength": 1,
+			"description": "A Loki query written in standard format."
+		},
+		"lokiUrl": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Base URL of Loki API instance."
+		},
+		"coolDown": {
+			"type": ["number", "null"],
+			"default": 10000,
+			"description": "Time to wait between fetching the next batch of lines from the Loki API."
+		},
+		"totalLinesLimit": {
+			"type": "number",
+			"minimum": 1,
+			"description": "Limit on the total number of lines to download."
+		},
+		"fileLinesLimit": {
+			"type": "number",
+			"minimum": 1,
+			"description": "Limit on the number of lines outputted to each file."
+		},
+		"batchLinesLimit": {
+			"type": "number",
+			"minimum": 1,
+			"default": 2000,
+			"description": "Limit on the number of lines fetched from the Loki API in a single request."
+		},
+		"promptToStart": {
+			"type": "boolean",
+			"default": true,
+			"description": "Ask for confirmation before the download starts."
+		}
+	},
+	"required": ["query", "lokiUrl"],
+	"additionalProperties": false,
+	"$schema": "http://json-schema.org/draft-07/schema#"
+}

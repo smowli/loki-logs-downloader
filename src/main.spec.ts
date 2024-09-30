@@ -52,6 +52,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 			clearOutputDir: true,
 			fileLinesLimit: 100,
 			from: fromDate.toISOString(),
+			promptToStart: false,
 		},
 	});
 
@@ -144,6 +145,7 @@ it(`downloads logs & recovers state`, async () => {
 				coolDown: null,
 				batchLinesLimit: 200,
 				clearOutputDir: true,
+				promptToStart: false,
 			},
 		})
 	);
@@ -207,6 +209,7 @@ it('uses config file if option is set', async () => {
 			return {
 				query: '{}',
 				lokiUrl: DEFAULT_LOKI_URL,
+				promptToStart: false,
 			};
 		}
 
@@ -257,6 +260,7 @@ describe('different configs', () => {
 					query: '{app="test"}',
 					lokiUrl: DEFAULT_LOKI_URL,
 					coolDown: null,
+					promptToStart: false,
 					...configs,
 				},
 			});
@@ -338,6 +342,7 @@ describe('state files', () => {
 						query: '{app="test"}',
 						lokiUrl: DEFAULT_LOKI_URL,
 						coolDown: null,
+						promptToStart: false,
 						...option,
 					},
 				});

@@ -3,7 +3,11 @@
 import { program } from 'commander';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
+
 import pkg from '../package.json';
+import configJsonSchema from '../config-schema.json';
+
+const configSchema = configJsonSchema.properties;
 
 const toNumber = (v: string) => Number(v);
 
@@ -15,34 +19,18 @@ program
 	.description(pkg.description)
 	.version(pkg.version)
 	// ==================================================
-	.option('-q --query <loki_query>')
-	.option('-u --lokiUrl <url>')
-	.option('-f --from <date>')
-	.option('-t --to <date>')
-	.option('-c --configFile <path_to_config>')
-	.option('-o --outputFolder <folder>')
-	.option('-n --outputName <name>')
-	.option(
-		'-tll --totalLinesLimit <number>',
-		'Limit of total lines to download',
-		toNumber //
-	)
-	.option(
-		'-fll --fileLinesLimit <number>',
-		'Limit of lines outputted to each file',
-		toNumber //
-	)
-	.option(
-		'-bll --batchLinesLimit <number>',
-		'Limit of lines fetched from Loki API in one request',
-		toNumber //
-	)
-	.option(
-		'--coolDown <timeMs>',
-		'Time to wait between fetching next batch of lines from Loki API',
-		toNumber //
-	)
-	.option('--clearOutputDir')
+	.option('-q --query <loki_query>', configSchema.query.description)
+	.option('-u --lokiUrl <url>', configSchema.lokiUrl.description)
+	.option('-f --from <date>', configSchema.from.description)
+	.option('-t --to <date>', configSchema.to.description)
+	.option('-c --configFile <path_to_config>', configSchema.configFile.description)
+	.option('-o --outputFolder <folder>', configSchema.outputFolder.description)
+	.option('-n --outputName <name>', configSchema.outputName.description)
+	.option('-tll --totalLinesLimit <number>', configSchema.totalLinesLimit.description, toNumber)
+	.option('-fll --fileLinesLimit <number>', configSchema.fileLinesLimit.description, toNumber)
+	.option('-bll --batchLinesLimit <number>', configSchema.batchLinesLimit.description, toNumber)
+	.option('--coolDown <timeMs>', configSchema.coolDown.description, toNumber)
+	.option('--clearOutputDir', configSchema.clearOutputDir.description)
 	// ==================================================
 	.action(async params => {
 		await main({
