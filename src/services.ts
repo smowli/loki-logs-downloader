@@ -14,6 +14,7 @@ import { dirname, join } from 'path';
 import { z } from 'zod';
 import { FOLDERS } from './constants';
 import { createLokiClient } from './loki';
+import { nanosecondsToMilliseconds } from './util';
 
 const stateSchema = z.object({
 	startFromTimestamp: z.string(),
@@ -188,7 +189,7 @@ export interface LokiRecord {
 export interface Fetcher {
 	(options: { from: bigint; to: Date; query: string; limit: number }): Promise<{
 		returnedLines: LokiRecord[];
-		pointer?: LokiRecord;
+		pointer: LokiRecord | undefined;
 	}>;
 }
 
@@ -217,14 +218,14 @@ export const createFetcher: FetcherFactory = () => {
 				const output = data.data.result.flatMap(result => {
 					return result.values.flatMap(([timestamp, line]): LokiRecord => {
 						return {
-							timestamp: new Date(timestamp / 1000 / 1000),
+							timestamp: new Date(nanosecondsToMilliseconds(Number(timestamp))),
 							rawTimestamp: BigInt(timestamp),
 							line,
 						};
 					});
 				});
 
-				const pointer = output.at(-1) as LokiRecord;
+				const pointer = output.at(-1) as LokiRecord | undefined;
 				const returnedLines = output.slice(0, limit) as LokiRecord[];
 
 				return { returnedLines, pointer };

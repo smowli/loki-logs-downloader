@@ -25,7 +25,7 @@ const lokiApiResponseSchema = z.union([
 			result: z.array(
 				z.object({
 					metric: z.object({}).passthrough(), // TODO: What to do with labels
-					values: z.array(z.tuple([z.number(), z.string()])),
+					values: z.array(z.tuple([z.string(), z.string()])),
 				})
 			),
 			stats: lokiStatsSchema,
@@ -38,7 +38,7 @@ const lokiApiResponseSchema = z.union([
 			result: z.array(
 				z.object({
 					stream: z.object({}).passthrough(), // TODO: What to do with labels
-					values: z.array(z.tuple([z.number(), z.string()])),
+					values: z.array(z.tuple([z.string(), z.string()])),
 				})
 			),
 			stats: lokiStatsSchema,
@@ -87,7 +87,9 @@ export const createLokiClient = (lokiUrl: string) => {
 
 			const rawData = await response.json();
 
-			return lokiApiResponseSchema.parse(rawData);
+			const parsedData = lokiApiResponseSchema.parse(rawData);
+
+			return parsedData;
 		},
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);

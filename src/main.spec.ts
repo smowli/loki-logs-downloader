@@ -39,7 +39,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 	const fromDate = new Date();
 
 	await main({
-		fetcherFactory: async () => testFetcher,
+		fetcherFactory: () => testFetcher,
 		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
@@ -134,7 +134,7 @@ it(`downloads logs & recovers state`, async () => {
 
 	await retry(5, () =>
 		main({
-			fetcherFactory: async () => testFetcher,
+			fetcherFactory: () => testFetcher,
 			fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 			stateStoreFactory: createStateStore,
 			loggerFactory: () => createLogger('error'),
@@ -205,15 +205,15 @@ it('uses config file if option is set', async () => {
 
 	const testFs = createFileSystem(OUTPUT_DIR);
 	const readConfigMock = vitest.fn().mockImplementation(() => {
-		return {
+		return JSON.stringify({
 			query: '{}',
 			lokiUrl: DEFAULT_LOKI_URL,
 			promptToStart: false,
-		};
+		});
 	});
 
 	await main({
-		fetcherFactory: async () => testFetcherFactory({ totalLines: 0 }),
+		fetcherFactory: () => testFetcherFactory({ totalLines: 0 }),
 		fileSystemFactory: () => ({
 			...testFs,
 			readConfig: readConfigMock,
@@ -248,7 +248,7 @@ describe('different configs', () => {
 			const testFetcher = testFetcherFactory({ totalLines: 971 });
 
 			await main({
-				fetcherFactory: async () => testFetcher,
+				fetcherFactory: () => testFetcher,
 				fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 				stateStoreFactory: createStateStore,
 				loggerFactory: () => createLogger('error'),
@@ -330,7 +330,7 @@ describe('state files', () => {
 
 			for (const option of configs) {
 				await main({
-					fetcherFactory: async () => testFetcherFactory({ totalLines: 0 }),
+					fetcherFactory: () => testFetcherFactory({ totalLines: 0 }),
 					fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 					stateStoreFactory: createStateStore,
 					loggerFactory: () => createLogger('error'),
@@ -356,6 +356,7 @@ describe('state files', () => {
 
 function testFetcherFactory(options: {
 	totalLines: number;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	customHandler?: (state: { called: number }) => any;
 }): {
 	init: (options: { lokiUrl: string }) => Fetcher;
