@@ -14,12 +14,12 @@ import { dirname, join } from 'path';
 import { z } from 'zod';
 import { FOLDERS } from './constants';
 import { createLokiClient } from './loki';
-import { nanosecondsToMilliseconds } from './util';
+import { nanosecondsToMilliseconds, secondsToMilliseconds } from './util';
 
 const stateSchema = z.object({
 	startFromTimestamp: z.string(),
-	totalLines: z.number(),
-	queryLinesExhausted: z.boolean(),
+	totalRecords: z.number(),
+	queryRecordsExhausted: z.boolean(),
 	fileNumber: z.number(),
 	iteration: z.number(),
 });
@@ -183,12 +183,12 @@ export const createFileSystem: FileSystemFactory = (rootDir = '') => {
 export interface LokiRecord {
 	timestamp: Date;
 	rawTimestamp: bigint;
-	line: string;
+	record: string;
 }
 
 export interface Fetcher {
 	(options: { from: bigint; to: Date; query: string; limit: number }): Promise<{
-		returnedLines: LokiRecord[];
+		returnedRecords: LokiRecord[];
 		pointer: LokiRecord | undefined;
 	}>;
 }
@@ -203,32 +203,39 @@ export const createFetcher: FetcherFactory = () => {
 			const lokiClient = createLokiClient(lokiUrl);
 
 			return async ({ query, limit, from, to }) => {
-				const lineCount = limit + 1; // +1 for pointer
+				const recordCount = limit + 1; // +1 for pointer
 
 				const additionalHeaders = getAdditionalHeaders?.();
 
 				const data = await lokiClient.query_range({
 					query,
-					limit: lineCount,
+					limit: recordCount,
 					from,
 					to,
 					additionalHeaders,
 				});
 
 				const output = data.data.result.flatMap(result => {
-					return result.values.flatMap(([timestamp, line]): LokiRecord => {
+					return result.values.flatMap(([timestamp, record]): LokiRecord => {
+						// loki API returns different format for each resultType
+						const date = new Date(
+							data.data.resultType === 'matrix'
+								? secondsToMilliseconds(Number(timestamp))
+								: nanosecondsToMilliseconds(Number(timestamp))
+						);
+
 						return {
-							timestamp: new Date(nanosecondsToMilliseconds(Number(timestamp))),
+							timestamp: date,
 							rawTimestamp: BigInt(timestamp),
-							line,
+							record,
 						};
 					});
 				});
 
 				const pointer = output.at(-1) as LokiRecord | undefined;
-				const returnedLines = output.slice(0, limit) as LokiRecord[];
+				const returnedRecords = output.slice(0, limit) as LokiRecord[];
 
-				return { returnedLines, pointer };
+				return { returnedRecords, pointer };
 			};
 		},
 	};

@@ -9,13 +9,13 @@
 		"from": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-10-01T14:26:44.887Z",
+			"default": "2024-10-01T15:57:40.584Z",
 			"description": "Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour."
 		},
 		"to": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-10-01T15:26:44.887Z",
+			"default": "2024-10-01T16:57:40.584Z",
 			"description": "Represents the ending timestamp until which the logs will be queried. Defaults to now."
 		},
 		"clearOutputDir": {
@@ -48,23 +48,23 @@
 		"coolDown": {
 			"type": ["number", "null"],
 			"default": 10000,
-			"description": "Time to wait between fetching the next batch of lines from the Loki API."
+			"description": "Time to wait between fetching the next batch of records from the Loki API."
 		},
-		"totalLinesLimit": {
+		"totalRecordsLimit": {
 			"type": "number",
 			"minimum": 1,
-			"description": "Limit on the total number of lines to download."
+			"description": "Limit on the total number of records to download."
 		},
-		"fileLinesLimit": {
+		"fileRecordsLimit": {
 			"type": "number",
 			"minimum": 1,
-			"description": "Limit on the number of lines outputted to each file."
+			"description": "Limit on the number of records outputted to each file."
 		},
-		"batchLinesLimit": {
+		"batchRecordsLimit": {
 			"type": "number",
 			"minimum": 1,
 			"default": 2000,
-			"description": "Limit on the number of lines fetched from the Loki API in a single request."
+			"description": "Limit on the number of records fetched from the Loki API in a single request."
 		},
 		"promptToStart": {
 			"type": "boolean",

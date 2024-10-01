@@ -25,7 +25,7 @@ const lokiApiResponseSchema = z.union([
 			result: z.array(
 				z.object({
 					metric: z.object({}).passthrough(), // TODO: What to do with labels
-					values: z.array(z.tuple([z.string(), z.string()])),
+					values: z.array(z.tuple([z.number(), z.string()])), //  [<number: second unix epoch>, <string: value>]
 				})
 			),
 			stats: lokiStatsSchema,
@@ -38,7 +38,7 @@ const lokiApiResponseSchema = z.union([
 			result: z.array(
 				z.object({
 					stream: z.object({}).passthrough(), // TODO: What to do with labels
-					values: z.array(z.tuple([z.string(), z.string()])),
+					values: z.array(z.tuple([z.string(), z.string()])), // [<string: nanosecond unix epoch>, <string: log line>],
 				})
 			),
 			stats: lokiStatsSchema,
