@@ -1,3 +1,20 @@
+## [2.0.0](https://github.com/vosmol/loki-logs-downloader/compare/1.2.0...2.0.0) (2024-10-01)
+
+### ⚠ BREAKING CHANGES
+
+- rename lines to records
+- properly parse loki response
+- support extra headers in fetcher request
+- refactor fs interface
+
+### Features 🚀
+
+- generate config schema from zod ([d91c723](https://github.com/vosmol/loki-logs-downloader/commit/d91c72339a04c7c1edcd22a8e2d7a51f4f1a5c63))
+- properly parse loki response ([46fbfb9](https://github.com/vosmol/loki-logs-downloader/commit/46fbfb9e9cfee29ca82f4e1d9bd5e3b7353689cd))
+- refactor fs interface ([b6dbfed](https://github.com/vosmol/loki-logs-downloader/commit/b6dbfed279882e7508fc015e5f50df681e9ea4a9))
+- rename lines to records ([e8e5a88](https://github.com/vosmol/loki-logs-downloader/commit/e8e5a88cde979b246b2a00aceaaf850ae3571c06))
+- support extra headers in fetcher request ([c33b12f](https://github.com/vosmol/loki-logs-downloader/commit/c33b12f78e7191f070fe21a52d0fe8af927d564a))
+
 ## 1.2.0 (2024-09-29)
 
 ### Features 🚀
