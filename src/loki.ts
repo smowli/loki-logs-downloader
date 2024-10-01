@@ -1,3 +1,9 @@
+/*
+DOCS REFERENCE
+- https://grafana.com/docs/loki/latest/reference/loki-http-api/#query-logs-within-a-range-of-time
+- https://grafana.com/docs/loki/latest/reference/loki-http-api/#statistics
+*/
+
 import { z } from 'zod';
 import { BaseError, UnrecoverableError } from './error';
 
