@@ -204,23 +204,19 @@ it('uses config file if option is set', async () => {
 	const configFilePath = '/app/usr/config.json';
 
 	const testFs = createFileSystem(OUTPUT_DIR);
-	const readJsonMock = vitest.fn().mockImplementation(path => {
-		if (path === configFilePath) {
-			return {
-				query: '{}',
-				lokiUrl: DEFAULT_LOKI_URL,
-				promptToStart: false,
-			};
-		}
-
-		return testFs.readJson(path);
+	const readConfigMock = vitest.fn().mockImplementation(() => {
+		return {
+			query: '{}',
+			lokiUrl: DEFAULT_LOKI_URL,
+			promptToStart: false,
+		};
 	});
 
 	await main({
 		fetcherFactory: async () => testFetcherFactory({ totalLines: 0 }),
 		fileSystemFactory: () => ({
 			...testFs,
-			readJson: readJsonMock,
+			readConfig: readConfigMock,
 		}),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
@@ -229,7 +225,8 @@ it('uses config file if option is set', async () => {
 		},
 	});
 
-	expect(readJsonMock).toBeCalledWith(configFilePath);
+	expect(readConfigMock).toBeCalledTimes(1);
+	expect(readConfigMock).toBeCalledWith(configFilePath);
 });
 
 describe('different configs', () => {

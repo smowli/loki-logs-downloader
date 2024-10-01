@@ -1,4 +1,3 @@
-import { EOL } from 'os';
 import { join } from 'path';
 import { exit } from 'process';
 import prompts from 'prompts';
@@ -104,9 +103,7 @@ export async function main({
 			.pick({ configFile: true })
 			.parse({ configFile: config.configFile });
 
-		if (configFile) {
-			config = (await fs.readJson(configFile)) as Config;
-		}
+		const fileConfig = configFile && (await fs.readConfig(configFile));
 
 		// ### validate config
 
@@ -123,7 +120,7 @@ export async function main({
 			outputFolder,
 			clearOutputDir: forceClearOutput,
 			promptToStart,
-		} = configSchema.parse(config);
+		} = configSchema.parse(fileConfig || config);
 
 		if (promptToStart) {
 			const startDownload = await prompts({
@@ -176,7 +173,7 @@ export async function main({
 		const outputDirPath = join(outputFolder, outputName);
 
 		const { exists: outputDirExists, isEmpty: outputDirIsEmpty } =
-			await fs.getDirData(outputDirPath);
+			await fs.readOutputDir(outputDirPath);
 
 		if (
 			outputDirExists &&
@@ -200,7 +197,7 @@ export async function main({
 
 			logger.info(`removing files in ${outputDirPath} directory`);
 
-			await fs.emptyDir(outputDirPath);
+			await fs.emptyOutputDir(outputDirPath);
 		}
 
 		// ### main processing loop
@@ -257,18 +254,7 @@ export async function main({
 
 				logger.info(`saving ${usedLines.length} lines to ${filename}`);
 
-				await fs.saveFile(
-					filename,
-					`${usedLines
-						.map(data =>
-							JSON.stringify({
-								...data,
-								rawTimestamp: data.rawTimestamp.toString(),
-							})
-						)
-						.join(EOL)}${EOL}`,
-					{ append: true }
-				);
+				await fs.outputLogs(filename, usedLines);
 
 				savedLines += usedLines.length;
 				prevSavedLinesInFile = prevSavedLinesInFile + usedLines.length;
