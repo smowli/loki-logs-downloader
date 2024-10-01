@@ -71,6 +71,21 @@ export const configSchema = z.object({
 		.boolean()
 		.default(true)
 		.describe('Ask for confirmation before the download starts.'),
+	orgId: z
+		.string()
+		.min(1)
+		.optional()
+		.describe('Adds X-Scope-OrgID header to API requests for representing tenant ID.'),
+	headers: z
+		.array(z.string())
+		.optional()
+		.describe(
+			'Additional request headers that will be present in every Loki API request. Can be used to provide authorization header.'
+		),
+	queryTags: z
+		.array(z.string())
+		.optional()
+		.describe('Adds X-Query-Tags header to API requests for tracking the query.'),
 });
 
 export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {
@@ -103,7 +118,7 @@ export async function main({
 			.pick({ configFile: true })
 			.parse({ configFile: config.configFile });
 
-		const fileConfig = configFile && (await fs.readConfig(configFile));
+		const fileConfig = configFile && JSON.parse(await fs.readConfig(configFile));
 
 		// ### validate config
 
@@ -120,6 +135,9 @@ export async function main({
 			outputFolder,
 			clearOutputDir,
 			promptToStart,
+			orgId,
+			queryTags,
+			headers,
 		} = configSchema.parse(fileConfig || config);
 
 		if (promptToStart) {
@@ -129,16 +147,16 @@ export async function main({
 				message: `Start the download?`,
 			});
 
-			if (!startDownload.start) {
-				throw new Error('TODO');
-				// TODO: Do exit instead of error
-			}
+			if (!startDownload.start) process.exit(1);
 		}
 
-		// ### loop variables
+		// ### remap variables
+		const requestHeaders = headers?.map(header => header.split('='));
 
 		const totalLinesLimit = limit || Infinity;
 		const linesLimitPerFile = fileLinesLimit || Infinity;
+
+		// ### loop variables
 
 		let startFromTimestamp = getNanoseconds(fromDate);
 		let fileNumber = 0;
@@ -204,6 +222,16 @@ export async function main({
 
 		const fetchLines = fetcherInstance.init({
 			lokiUrl,
+			getAdditionalHeaders: () => {
+				const customHeaders = requestHeaders && Object.fromEntries(requestHeaders);
+
+				const headers = new Headers(customHeaders);
+
+				if (orgId) headers.set('X-Scope-OrgID', orgId);
+				if (queryTags) headers.set('X-Query-Tags', queryTags.join(', '));
+
+				return headers;
+			},
 		});
 
 		let prevSavedLinesInFile = 0;

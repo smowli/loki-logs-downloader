@@ -8,6 +8,7 @@ import { createLokiClient } from './loki';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
 import { getNanoseconds } from './util';
+import assert from 'assert';
 
 const lokiUrl = DEFAULT_LOKI_URL;
 const LABELS = { app: 'test' };
@@ -27,12 +28,10 @@ beforeAll(async () => {
 });
 
 it('Downloads logs from real loki API', {}, async () => {
-	const testFetcher = await createFetcher();
-
 	const totalLinesLimit = 6103;
 
 	await main({
-		fetcherFactory: async () => testFetcher,
+		fetcherFactory: createFetcher,
 		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 		stateStoreFactory: createStateStore,
 		loggerFactory: () => createLogger('error'),
@@ -85,9 +84,9 @@ async function setupLoki({
 
 	const existingData = await lokiClient.query_range({ query: findQuery });
 
-	const dataExists =
-		existingData.status === 'success' &&
-		existingData.data.result.some((record: any) => record.values.length !== 0);
+	assert(existingData.status === 'success');
+
+	const dataExists = existingData.data.result.some(record => record.values.length !== 0);
 
 	if (!dataExists) {
 		console.log('pushing test logs to loki');

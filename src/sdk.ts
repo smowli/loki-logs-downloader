@@ -20,5 +20,6 @@ export const download = async (options: {
 		stateStoreFactory: createStateStore,
 		fileSystemFactory: options.fileSystemFactory || createFileSystem,
 		fetcherFactory: createFetcher,
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		config: options.config as any, // no worries, these are parsed and validated further
 	});

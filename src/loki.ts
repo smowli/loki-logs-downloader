@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { BaseError, UnrecoverableError } from './error';
 
 export const LOKI_API_ERRORS = {
@@ -12,6 +13,39 @@ export class MaxEntriesLimitPerQueryExceeded extends UnrecoverableLokiApiError {
 	message = 'max entries limit per query exceeded';
 }
 
+const lokiStatusSchema = z.union([z.literal('success'), z.literal('error')]);
+
+const lokiStatsSchema = z.object({}).passthrough();
+
+const lokiApiResponseSchema = z.union([
+	z.object({
+		status: lokiStatusSchema,
+		data: z.object({
+			resultType: z.literal('matrix'),
+			result: z.array(
+				z.object({
+					metric: z.object({}).passthrough(), // TODO: What to do with labels
+					values: z.array(z.tuple([z.string(), z.string()])),
+				})
+			),
+			stats: lokiStatsSchema,
+		}),
+	}),
+	z.object({
+		status: lokiStatusSchema,
+		data: z.object({
+			resultType: z.literal('streams'),
+			result: z.array(
+				z.object({
+					stream: z.object({}).passthrough(), // TODO: What to do with labels
+					values: z.array(z.tuple([z.string(), z.string()])),
+				})
+			),
+			stats: lokiStatsSchema,
+		}),
+	}),
+]);
+
 const timestampUrlValue = (value: Date | bigint | number) =>
 	value instanceof Date ? value.toISOString() : value.toString();
 
@@ -22,11 +56,13 @@ export const createLokiClient = (lokiUrl: string) => {
 			limit,
 			from,
 			to,
+			additionalHeaders,
 		}: {
 			query: string;
 			limit?: number;
 			from?: Date | bigint | number;
 			to?: Date | bigint | number;
+			additionalHeaders?: Headers | undefined;
 		}) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
 
@@ -36,7 +72,9 @@ export const createLokiClient = (lokiUrl: string) => {
 			if (from) url.searchParams.set('start', timestampUrlValue(from));
 			if (to) url.searchParams.set('end', timestampUrlValue(to));
 
-			const response = await fetch(url);
+			const headers = new Headers(additionalHeaders);
+
+			const response = await fetch(url, { headers });
 
 			if (!response.ok) {
 				const responseText = await response.text();
@@ -47,9 +85,11 @@ export const createLokiClient = (lokiUrl: string) => {
 				throw new LokiApiError(responseText);
 			}
 
-			// TODO: Parse & type response -> remove any types
+			const rawData = await response.json();
 
-			return response.json();
+			const parsedData = lokiApiResponseSchema.parse(rawData);
+
+			return parsedData;
 		},
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);

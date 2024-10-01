@@ -78,7 +78,7 @@
 		"prepare": "husky",
 		"prepublishOnly": "npm run build",
 		"release": "release-it",
-		"generate-config-schema": "tsx ./dev/config-schema.mts"
+		"generate-config-schema": "tsx ./dev/config-schema.ts"
 	},
 	"lint-staged": {
 		"*": [

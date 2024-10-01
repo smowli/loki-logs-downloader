@@ -31,6 +31,9 @@ program
 	.option('-bll --batchLinesLimit <number>', configSchema.batchLinesLimit.description, toNumber)
 	.option('--coolDown <timeMs>', configSchema.coolDown.description, toNumber)
 	.option('--clearOutputDir', configSchema.clearOutputDir.description)
+	.option('--orgId <name>', configSchema.orgId.description)
+	.option('--headers [headers...]', configSchema.headers.description)
+	.option('--queryTags [tags...]', configSchema.queryTags.description)
 	// ==================================================
 	.action(async params => {
 		await main({
@@ -38,6 +41,7 @@ program
 			stateStoreFactory: createStateStore,
 			fileSystemFactory: createFileSystem,
 			fetcherFactory: createFetcher,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			config: params as any, // no worries, these are parsed and validated further
 		});
 	});
