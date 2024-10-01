@@ -118,7 +118,7 @@ export async function main({
 			totalLinesLimit: limit,
 			batchLinesLimit, // split file into multiple requests to ease the load to api
 			outputFolder,
-			clearOutputDir: forceClearOutput,
+			clearOutputDir,
 			promptToStart,
 		} = configSchema.parse(fileConfig || config);
 
@@ -180,7 +180,7 @@ export async function main({
 			!outputDirIsEmpty &&
 			!prevState // if prevState found, do not clean dir and continue in download instead
 		) {
-			if (!forceClearOutput) {
+			if (!clearOutputDir) {
 				const response = await prompts({
 					type: 'confirm',
 					name: 'delete',
