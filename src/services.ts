@@ -4,22 +4,26 @@ import {
 	ensureDir,
 	exists,
 	pathExists,
-	readJson,
+	readFile,
 	readdir,
 	writeFile,
 } from 'fs-extra';
+import md5 from 'md5';
 import { dirname, join } from 'path';
 import { FOLDERS } from './constants';
 import { createLokiClient } from './loki';
-import md5 from 'md5';
+import { EOL } from 'os';
+import { z } from 'zod';
 
-interface State {
-	startFromTimestamp: string;
-	totalLines: number;
-	queryLinesExhausted: boolean;
-	fileNumber: number;
-	iteration: number;
-}
+const stateSchema = z.object({
+	startFromTimestamp: z.string(),
+	totalLines: z.number(),
+	queryLinesExhausted: z.boolean(),
+	fileNumber: z.number(),
+	iteration: z.number(),
+});
+
+type State = z.infer<typeof stateSchema>;
 
 export interface StateStore {
 	load: () => Promise<State | undefined>;
@@ -39,9 +43,9 @@ export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
 
 			return {
 				async load() {
-					if (!(await fs.exists(statePath))) return;
+					const state = await fs.loadState(statePath);
 
-					const state = (await fs.readJson(statePath)) as State;
+					if (!state) return;
 
 					logger.info(
 						`Found previous state ${JSON.stringify(
@@ -49,10 +53,10 @@ export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
 						)} at ${statePath}. Continuing where left off.`
 					);
 
-					return state;
+					return stateSchema.parse(JSON.parse(state));
 				},
 				async save(state) {
-					await fs.saveFile(statePath, JSON.stringify({ ...state }));
+					await fs.saveState(statePath, state);
 				},
 			};
 		},
@@ -90,11 +94,12 @@ export const createLogger: LoggerFactory = (level = 'info') => {
 };
 
 export interface FileSystem {
-	saveFile: (path: string, data: string, options?: { append?: boolean }) => Promise<void>;
-	readJson: (path: string) => Promise<object>;
-	emptyDir: (path: string) => Promise<void>;
-	exists: (path: string) => Promise<boolean>;
-	getDirData: (path: string) => Promise<{ exists: boolean; isEmpty: boolean }>;
+	readOutputDir: (path: string) => Promise<{ exists: boolean; isEmpty: boolean }>;
+	outputLogs: (fileName: string, logs: LokiRecord[]) => Promise<void>;
+	emptyOutputDir: (path: string) => Promise<void>;
+	readConfig: (path: string) => Promise<string>;
+	saveState: (path: string, state: State) => Promise<void>;
+	loadState: (path: string) => Promise<string | undefined>;
 }
 
 export type FileSystemFactory = (rootDir?: string) => FileSystem;
@@ -102,48 +107,72 @@ export type FileSystemFactory = (rootDir?: string) => FileSystem;
 export const createFileSystem: FileSystemFactory = (rootDir = '') => {
 	const getFullPath = (path: string) => join(rootDir, path);
 
+	async function getDirData(path: string) {
+		const dirPath = dirname(path);
+
+		const exists = await pathExists(dirPath);
+
+		if (!exists) {
+			return { exists: false, isEmpty: false };
+		}
+
+		const contents = await readdir(dirPath);
+
+		return {
+			exists,
+			isEmpty: contents.length === 0,
+		};
+	}
+
+	async function saveFile(path: string, data: string, options?: { append: boolean }) {
+		const fullPath = getFullPath(path);
+
+		await ensureDir(dirname(fullPath));
+
+		const method = options?.append ? appendFile : writeFile;
+
+		await method(fullPath, data);
+	}
+
 	return {
-		async saveFile(path, data, options) {
+		async readOutputDir(path) {
 			const fullPath = getFullPath(path);
 
-			await ensureDir(dirname(fullPath));
-
-			const method = options?.append ? appendFile : writeFile;
-
-			await method(fullPath, data);
+			return getDirData(fullPath);
 		},
-		async readJson(path) {
-			const fullPath = getFullPath(path);
-
-			return readJson(fullPath);
-		},
-		async emptyDir(path) {
+		async emptyOutputDir(path) {
 			const fullPath = getFullPath(path);
 
 			return emptyDir(fullPath);
 		},
-		async exists(path) {
-			const fullPath = getFullPath(path);
-
-			return exists(fullPath);
+		async outputLogs(fileName, logs) {
+			return saveFile(
+				fileName,
+				`${logs
+					.map(data =>
+						JSON.stringify({
+							...data,
+							rawTimestamp: data.rawTimestamp.toString(),
+						})
+					)
+					.join(EOL)}${EOL}`,
+				{ append: true }
+			);
 		},
-		async getDirData(path) {
+		async readConfig(path) {
 			const fullPath = getFullPath(path);
 
-			const dirPath = dirname(fullPath);
+			return (await readFile(fullPath)).toString();
+		},
+		async loadState(path) {
+			const fullPath = getFullPath(path);
 
-			const exists = await pathExists(dirPath);
+			if (!(await exists(fullPath))) return;
 
-			if (!exists) {
-				return { exists: false, isEmpty: false };
-			}
-
-			const contents = await readdir(dirPath);
-
-			return {
-				exists,
-				isEmpty: contents.length === 0,
-			};
+			return (await readFile(fullPath)).toString();
+		},
+		async saveState(path, state) {
+			return saveFile(path, JSON.stringify(state));
 		},
 	};
 };
