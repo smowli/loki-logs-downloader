@@ -51,22 +51,22 @@ export const configSchema = z.object({
 		.number()
 		.nullable()
 		.default(10_000)
-		.describe('Time to wait between fetching the next batch of lines from the Loki API.'),
-	totalLinesLimit: z
+		.describe('Time to wait between fetching the next batch of records from the Loki API.'),
+	totalRecordsLimit: z
 		.number()
 		.min(1)
 		.optional()
-		.describe('Limit on the total number of lines to download.'),
-	fileLinesLimit: z
+		.describe('Limit on the total number of records to download.'),
+	fileRecordsLimit: z
 		.number()
 		.min(1)
 		.optional()
-		.describe('Limit on the number of lines outputted to each file.'),
-	batchLinesLimit: z
+		.describe('Limit on the number of records outputted to each file.'),
+	batchRecordsLimit: z
 		.number()
 		.min(1)
 		.default(2000)
-		.describe('Limit on the number of lines fetched from the Loki API in a single request.'),
+		.describe('Limit on the number of records fetched from the Loki API in a single request.'),
 	promptToStart: z
 		.boolean()
 		.default(true)
@@ -127,11 +127,11 @@ export async function main({
 			to: toDate,
 			query,
 			lokiUrl,
-			fileLinesLimit,
+			fileRecordsLimit,
 			outputName,
 			coolDown,
-			totalLinesLimit: limit,
-			batchLinesLimit, // split file into multiple requests to ease the load to api
+			totalRecordsLimit: limit,
+			batchRecordsLimit, // split file into multiple requests to ease the load to api
 			outputFolder,
 			clearOutputDir,
 			promptToStart,
@@ -153,16 +153,16 @@ export async function main({
 		// ### remap variables
 		const requestHeaders = headers?.map(header => header.split('='));
 
-		const totalLinesLimit = limit || Infinity;
-		const linesLimitPerFile = fileLinesLimit || Infinity;
+		const totalRecordsLimit = limit || Infinity;
+		const recordsLimitPerFile = fileRecordsLimit || Infinity;
 
 		// ### loop variables
 
 		let startFromTimestamp = getNanoseconds(fromDate);
 		let fileNumber = 0;
-		let totalLines = 0;
+		let totalRecords = 0;
 		let iteration = 0;
-		let queryLinesExhausted = false;
+		let queryRecordsExhausted = false;
 
 		// ### state recovery
 
@@ -171,7 +171,7 @@ export async function main({
 			toDate.toISOString(),
 			query,
 			lokiUrl,
-			linesLimitPerFile.toString(),
+			recordsLimitPerFile.toString(),
 			outputName,
 			outputFolder
 		);
@@ -181,9 +181,9 @@ export async function main({
 		if (prevState) {
 			startFromTimestamp = BigInt(prevState.startFromTimestamp);
 			fileNumber = prevState.fileNumber;
-			totalLines = prevState.totalLines;
+			totalRecords = prevState.totalRecords;
 			iteration = prevState.iteration;
-			queryLinesExhausted = prevState.queryLinesExhausted;
+			queryRecordsExhausted = prevState.queryRecordsExhausted;
 		}
 
 		// ### output directory cleanup
@@ -220,7 +220,7 @@ export async function main({
 
 		// ### main processing loop
 
-		const fetchLines = fetcherInstance.init({
+		const fetchRecords = fetcherInstance.init({
 			lokiUrl,
 			getAdditionalHeaders: () => {
 				const customHeaders = requestHeaders && Object.fromEntries(requestHeaders);
@@ -234,72 +234,72 @@ export async function main({
 			},
 		});
 
-		let prevSavedLinesInFile = 0;
+		let prevSavedRecordsInFile = 0;
 
-		while (totalLines < totalLinesLimit && !queryLinesExhausted) {
+		while (totalRecords < totalRecordsLimit && !queryRecordsExhausted) {
 			if (iteration !== 0 && coolDown) {
-				logger.info(`coolDown configured, waiting for ${coolDown}ms before fetching next lines`);
+				logger.info(`coolDown configured, waiting for ${coolDown}ms before fetching next records`);
 				await wait(coolDown);
 			}
 
-			// # line fetching
+			// # record fetching
 
-			const remainingLines = totalLinesLimit - totalLines;
+			const remainingRecords = totalRecordsLimit - totalRecords;
 
-			const fetchLineCount = Math.min(remainingLines, batchLinesLimit);
+			const fetchRecordCount = Math.min(remainingRecords, batchRecordsLimit);
 
-			logger.info(`fetching next ${fetchLineCount} lines`);
+			logger.info(`fetching next ${fetchRecordCount} records`);
 
-			const { returnedLines, pointer } = await fetchLines({
+			const { returnedRecords, pointer } = await fetchRecords({
 				from: startFromTimestamp,
 				to: toDate,
-				limit: fetchLineCount,
+				limit: fetchRecordCount,
 				query: query,
 			});
 
-			// # split lines to files
+			// # split records to files
 
-			const returnedLinesCount = returnedLines.length;
+			const returnedRecordsCount = returnedRecords.length;
 
-			let savedLines = 0;
+			let savedRecords = 0;
 
-			while (savedLines !== returnedLinesCount) {
-				const fileSpace = linesLimitPerFile - prevSavedLinesInFile;
+			while (savedRecords !== returnedRecordsCount) {
+				const fileSpace = recordsLimitPerFile - prevSavedRecordsInFile;
 
-				const remainingLines = returnedLinesCount - savedLines;
+				const remainingRecords = returnedRecordsCount - savedRecords;
 
 				if (!fileSpace) {
 					fileNumber++;
-					prevSavedLinesInFile = 0;
+					prevSavedRecordsInFile = 0;
 					continue;
 				}
 
-				const slice = Math.min(fileSpace, remainingLines);
+				const slice = Math.min(fileSpace, remainingRecords);
 
-				const usedLines = returnedLines.slice(savedLines, savedLines + slice);
+				const usedRecords = returnedRecords.slice(savedRecords, savedRecords + slice);
 
 				const filename = join(outputDirPath, `${fileNumber}.txt`);
 
-				logger.info(`saving ${usedLines.length} lines to ${filename}`);
+				logger.info(`saving ${usedRecords.length} records to ${filename}`);
 
-				await fs.outputLogs(filename, usedLines);
+				await fs.outputLogs(filename, usedRecords);
 
-				savedLines += usedLines.length;
-				prevSavedLinesInFile = prevSavedLinesInFile + usedLines.length;
+				savedRecords += usedRecords.length;
+				prevSavedRecordsInFile = prevSavedRecordsInFile + usedRecords.length;
 			}
 
 			if (pointer) {
 				startFromTimestamp = pointer.rawTimestamp;
 			}
 
-			totalLines += returnedLinesCount;
-			queryLinesExhausted = returnedLinesCount < fetchLineCount;
+			totalRecords += returnedRecordsCount;
+			queryRecordsExhausted = returnedRecordsCount < fetchRecordCount;
 			iteration++;
 
 			await stateStore.save({
 				startFromTimestamp: startFromTimestamp.toString(),
-				totalLines,
-				queryLinesExhausted,
+				totalRecords,
+				queryRecordsExhausted,
 				fileNumber,
 				iteration,
 			});

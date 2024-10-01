@@ -20,7 +20,7 @@ beforeAll(async () => {
 	await remove(OUTPUT_DIR);
 
 	await setupLoki({
-		lineCount: 8000,
+		recordCount: 8000,
 		labels: LABELS,
 		lokiUrl,
 		findQuery: TEST_QUERY,
@@ -28,7 +28,7 @@ beforeAll(async () => {
 });
 
 it('Downloads logs from real loki API', {}, async () => {
-	const totalLinesLimit = 6103;
+	const totalRecordsLimit = 6103;
 
 	await main({
 		fetcherFactory: createFetcher,
@@ -40,9 +40,9 @@ it('Downloads logs from real loki API', {}, async () => {
 			lokiUrl: lokiUrl,
 			coolDown: 300,
 			clearOutputDir: true,
-			totalLinesLimit: totalLinesLimit,
-			batchLinesLimit: 1005,
-			fileLinesLimit: 1234,
+			totalRecordsLimit: totalRecordsLimit,
+			batchRecordsLimit: 1005,
+			fileRecordsLimit: 1234,
 			promptToStart: false,
 		},
 	});
@@ -61,21 +61,21 @@ it('Downloads logs from real loki API', {}, async () => {
 		content
 			.toString()
 			.split(EOL)
-			.filter(line => line.length > 0)
+			.filter(record => record.length > 0)
 	);
 
-	const lastLine = lastDownloadFile.at(-1);
+	const lastRecord = lastDownloadFile.at(-1);
 
-	expect(lastLine).toContain(`log line: ${totalLinesLimit}`);
+	expect(lastRecord).toContain(`log line: ${totalRecordsLimit}`);
 });
 
 async function setupLoki({
-	lineCount,
+	recordCount,
 	labels,
 	lokiUrl,
 	findQuery,
 }: {
-	lineCount: number;
+	recordCount: number;
 	labels: Record<string, string>;
 	lokiUrl: string;
 	findQuery: string;
@@ -92,7 +92,7 @@ async function setupLoki({
 		console.log('pushing test logs to loki');
 
 		const batchSize = 1000;
-		const batches = Math.ceil(lineCount / batchSize);
+		const batches = Math.ceil(recordCount / batchSize);
 
 		for (let batchNumber = 0; batchNumber < batches; batchNumber++) {
 			await lokiClient.push({

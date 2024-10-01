@@ -20,22 +20,22 @@ it(`downloads logs & outputs files with correct data`, async () => {
 		- TESTED CASE: 
 			- fetch in batch of 100
 			- limit per file is 100
-			- we want 140 lines to be returned
+			- we want 140 records to be returned
 
 		- TESTED RESULT:
 			- it generates correct files:
 				- 1 state file <- 1 run
 				- 2 output files <- 140 / 100 (file limit)
-			- files contain correct amount of lines
+			- files contain correct amount of records
 				- 100, 40
-			- lines have correct data
+			- records have correct data
 				- check last & first timestamp
 			- fetcher is called 2 times <- 1 full + 1 partial result
 		*/
 
 	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'single-run-test');
 
-	const testFetcher = testFetcherFactory({ totalLines: 140 });
+	const testFetcher = testFetcherFactory({ totalRecords: 140 });
 	const fromDate = new Date();
 
 	await main({
@@ -48,9 +48,9 @@ it(`downloads logs & outputs files with correct data`, async () => {
 			query: '{app="test"}',
 			lokiUrl: DEFAULT_LOKI_URL,
 			coolDown: null,
-			batchLinesLimit: 100,
+			batchRecordsLimit: 100,
 			clearOutputDir: true,
-			fileLinesLimit: 100,
+			fileRecordsLimit: 100,
 			from: fromDate.toISOString(),
 			promptToStart: false,
 		},
@@ -84,9 +84,9 @@ it(`downloads logs & outputs files with correct data`, async () => {
 
 	expect(stateFile).toMatchObject({
 		fileNumber: 1,
-		queryLinesExhausted: true,
+		queryRecordsExhausted: true,
 		startFromTimestamp: fetcherTestState.lastTimestamp?.toString(),
-		totalLines: 140,
+		totalRecords: 140,
 	});
 
 	// ### Check downloaded files content
@@ -97,8 +97,8 @@ it(`downloads logs & outputs files with correct data`, async () => {
 				content
 					.toString()
 					.split(EOL)
-					.filter(line => line.length > 0)
-					.map(line => JSON.parse(line))
+					.filter(record => record.length > 0)
+					.map(record => JSON.parse(record))
 			)
 		)
 	);
@@ -106,25 +106,25 @@ it(`downloads logs & outputs files with correct data`, async () => {
 	expect(downloadFiles[0].length).toBe(100);
 	expect(downloadFiles[1].length).toBe(40);
 
-	const [firstLineFile0, lastLineFile0, firstLineFile1, lastLineFile1] = [
+	const [firstRecordFile0, lastRecordFile0, firstRecordFile1, lastRecordFile1] = [
 		downloadFiles[0][0],
 		downloadFiles[0].at(-1),
 		downloadFiles[1][0],
 		downloadFiles[1].at(-1),
 	];
 
-	expect(firstLineFile0.timestamp).toBe(fromDate.toISOString());
-	expect(firstLineFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].from.toISOString());
-	expect(lastLineFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].to.toISOString());
-	expect(firstLineFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].from.toISOString());
-	expect(lastLineFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].to.toISOString());
+	expect(firstRecordFile0.timestamp).toBe(fromDate.toISOString());
+	expect(firstRecordFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].from.toISOString());
+	expect(lastRecordFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].to.toISOString());
+	expect(firstRecordFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].from.toISOString());
+	expect(lastRecordFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].to.toISOString());
 });
 
 it(`downloads logs & recovers state`, async () => {
 	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'retry-run-test');
 
 	const testFetcher = testFetcherFactory({
-		totalLines: 590,
+		totalRecords: 590,
 		customHandler({ called }) {
 			if (called % 2 === 0) {
 				throw new Error('fail for retry');
@@ -143,7 +143,7 @@ it(`downloads logs & recovers state`, async () => {
 				query: '{app="test"}',
 				lokiUrl: DEFAULT_LOKI_URL,
 				coolDown: null,
-				batchLinesLimit: 200,
+				batchRecordsLimit: 200,
 				clearOutputDir: true,
 				promptToStart: false,
 			},
@@ -176,9 +176,9 @@ it(`downloads logs & recovers state`, async () => {
 
 	expect(stateFile).toMatchObject({
 		fileNumber: 0,
-		queryLinesExhausted: true,
+		queryRecordsExhausted: true,
 		startFromTimestamp: fetcherTestState.lastTimestamp?.toString(),
-		totalLines: 590,
+		totalRecords: 590,
 	});
 
 	// ### Check downloaded files content
@@ -189,8 +189,8 @@ it(`downloads logs & recovers state`, async () => {
 				content
 					.toString()
 					.split(EOL)
-					.filter(line => line.length > 0)
-					.map(line => JSON.parse(line))
+					.filter(record => record.length > 0)
+					.map(record => JSON.parse(record))
 			)
 		)
 	);
@@ -213,7 +213,7 @@ it('uses config file if option is set', async () => {
 	});
 
 	await main({
-		fetcherFactory: () => testFetcherFactory({ totalLines: 0 }),
+		fetcherFactory: () => testFetcherFactory({ totalRecords: 0 }),
 		fileSystemFactory: () => ({
 			...testFs,
 			readConfig: readConfigMock,
@@ -237,15 +237,15 @@ describe('different configs', () => {
 	});
 
 	it.each([
-		[{ totalLinesLimit: 500 }, { files: 1, fetcherCalls: 1 }],
-		[{ totalLinesLimit: 5000 }, { files: 1, fetcherCalls: 1 }],
-		[{ fileLinesLimit: 100 }, { files: 10, fetcherCalls: 1 }],
-		[{ batchLinesLimit: 10 }, { files: 1, fetcherCalls: 98 }],
-		[{ batchLinesLimit: 5000 }, { files: 1, fetcherCalls: 1 }],
+		[{ totalRecordsLimit: 500 }, { files: 1, fetcherCalls: 1 }],
+		[{ totalRecordsLimit: 5000 }, { files: 1, fetcherCalls: 1 }],
+		[{ fileRecordsLimit: 100 }, { files: 10, fetcherCalls: 1 }],
+		[{ batchRecordsLimit: 10 }, { files: 1, fetcherCalls: 98 }],
+		[{ batchRecordsLimit: 5000 }, { files: 1, fetcherCalls: 1 }],
 	] as Array<[Partial<Config>, { files: number; fetcherCalls: 1 }]>)(
 		`%s configs behave as expected`,
 		async (configs, result) => {
-			const testFetcher = testFetcherFactory({ totalLines: 971 });
+			const testFetcher = testFetcherFactory({ totalRecords: 971 });
 
 			await main({
 				fetcherFactory: () => testFetcher,
@@ -319,9 +319,9 @@ describe('state files', () => {
 			{ to: new Date(Date.now() + 1000).toISOString() },
 		],
 		[
-			'fileLinesLimit', //
-			{ fileLinesLimit: 100 },
-			{ fileLinesLimit: 1000 },
+			'fileRecordsLimit', //
+			{ fileRecordsLimit: 100 },
+			{ fileRecordsLimit: 1000 },
 		],
 	] as Array<[keyof Config, ...Partial<Config>[]]>)(
 		`generates new state file when %s changes`,
@@ -330,7 +330,7 @@ describe('state files', () => {
 
 			for (const option of configs) {
 				await main({
-					fetcherFactory: () => testFetcherFactory({ totalLines: 0 }),
+					fetcherFactory: () => testFetcherFactory({ totalRecords: 0 }),
 					fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
 					stateStoreFactory: createStateStore,
 					loggerFactory: () => createLogger('error'),
@@ -355,7 +355,7 @@ describe('state files', () => {
 });
 
 function testFetcherFactory(options: {
-	totalLines: number;
+	totalRecords: number;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	customHandler?: (state: { called: number }) => any;
 }): {
@@ -369,7 +369,7 @@ function testFetcherFactory(options: {
 	let lastTimestamp: bigint | undefined;
 	let called = 0;
 	const batchTimestamps: { from: Date; to: Date }[] = [];
-	let remainingLines = options.totalLines;
+	let remainingRecords = options.totalRecords;
 
 	return {
 		testData: () => ({
@@ -381,37 +381,37 @@ function testFetcherFactory(options: {
 			return async ({ from, limit }) => {
 				called++;
 
-				if (remainingLines === 0) return { returnedLines: [] };
+				if (remainingRecords === 0) return { returnedRecords: [] };
 
-				const lineCount = Math.min(limit, remainingLines);
+				const recordCount = Math.min(limit, remainingRecords);
 
 				const getRecord = (increment = 0) => {
 					const date = new Date(Number(nanosecondsToMilliseconds(from)) + increment);
 					return {
-						line: '-',
+						record: '-',
 						rawTimestamp: getNanoseconds(date),
 						timestamp: date,
 					};
 				};
 
-				const lines: LokiRecord[] = Array.from({ length: lineCount }).map((_, index) =>
+				const records: LokiRecord[] = Array.from({ length: recordCount }).map((_, index) =>
 					getRecord(index)
 				);
 
-				const pointer = lineCount === limit ? getRecord(limit + 1) : lines.at(-1)!;
+				const pointer = recordCount === limit ? getRecord(limit + 1) : records.at(-1)!;
 
 				batchTimestamps.push({
-					from: lines[0].timestamp,
-					to: lines.at(-1)!.timestamp,
+					from: records[0].timestamp,
+					to: records.at(-1)!.timestamp,
 				});
 
 				const data = options.customHandler?.({ called }) || {
-					returnedLines: lines,
+					returnedRecords: records,
 					pointer: pointer,
 				};
 
 				lastTimestamp = pointer.rawTimestamp;
-				remainingLines -= lineCount;
+				remainingRecords -= recordCount;
 
 				return data;
 			};

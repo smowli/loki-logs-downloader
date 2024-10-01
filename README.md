@@ -30,12 +30,12 @@ Well, look no further! This is the tool you are most likely searching for becaus
 
 On a more serious note, though 🗿, this tool is optimized to download all or part of queried logs with the least possible load on the Loki server, so you don't bomb 💥 the production. This is achieved in a few ways:
 
-- It stores the download state. If the download is not finished and you run the tool again, it continues from where it previously left off = no repeated queries.
+- It stores the download state. If the download is not finished and you run the tool again with the same params it continues from where it previously left off = no repeated queries. Watch out for `from` & `to` options! If not set, default time [now - 1h] range will be different per run.
 - It queries the server in smaller batches that are easier to process.
 - It allows you to tweak key options affecting server load. For example:
-  - `batchLines` - the number of lines returned in a single API call (the `limit` parameter of the standard Loki API)
-  - `coolDown` - the time to wait before fetching the next batch of lines
-  - `totalLinesLimit` - the total limit of lines that will be fetched from the API
+  - `batchRecords` - the number of records returned in a single API call (the `limit` parameter of the standard Loki API)
+  - `coolDown` - the time to wait before fetching the next batch of records
+  - `totalRecordsLimit` - the total limit of records that will be fetched from the API
 
 It also comes in both **CLI and SDK flavors**. You can run it as-is, but advanced use cases are also possible. For example, you can plug in your custom file system interface and implement things like:
 

@@ -27,6 +27,10 @@ export function nanosecondsToMilliseconds(nanoseconds: number | bigint) {
 	return Math.round(Number(nanoseconds) / 1e6);
 }
 
+export function secondsToMilliseconds(seconds: number) {
+	return seconds * 1000;
+}
+
 export function hoursToMs(hours: number) {
 	return hours * 60 * 60 * 1000;
 }
