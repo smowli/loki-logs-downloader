@@ -17,7 +17,6 @@ export default [
 	{
 		rules: {
 			'no-useless-catch': 'off',
-			'@typescript-eslint/no-explicit-any': 'off', // TODO: Enable later
 		},
 	},
 ];

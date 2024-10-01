@@ -9,14 +9,14 @@
 		"from": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-09-30T18:36:15.690Z",
-			"description": "Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour"
+			"default": "2024-10-01T14:26:44.887Z",
+			"description": "Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour."
 		},
 		"to": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-09-30T19:36:15.691Z",
-			"description": "Represents the ending timestamp until which the logs will be queried. Defaults to now"
+			"default": "2024-10-01T15:26:44.887Z",
+			"description": "Represents the ending timestamp until which the logs will be queried. Defaults to now."
 		},
 		"clearOutputDir": {
 			"type": "boolean",
@@ -70,6 +70,25 @@
 			"type": "boolean",
 			"default": true,
 			"description": "Ask for confirmation before the download starts."
+		},
+		"orgId": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Adds X-Scope-OrgID header to API requests for representing tenant ID."
+		},
+		"headers": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Additional request headers that will be present in every Loki API request. Can be used to provide authorization header."
+		},
+		"queryTags": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Adds X-Query-Tags header to API requests for tracking the query."
 		}
 	},
 	"required": ["query", "lokiUrl"],

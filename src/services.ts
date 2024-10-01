@@ -9,11 +9,11 @@ import {
 	writeFile,
 } from 'fs-extra';
 import md5 from 'md5';
+import { EOL } from 'os';
 import { dirname, join } from 'path';
+import { z } from 'zod';
 import { FOLDERS } from './constants';
 import { createLokiClient } from './loki';
-import { EOL } from 'os';
-import { z } from 'zod';
 
 const stateSchema = z.object({
 	startFromTimestamp: z.string(),
@@ -64,7 +64,9 @@ export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
 };
 
 export interface Logger {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	error: (...args: any[]) => void;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	info: (...args: any[]) => void;
 }
 
@@ -190,24 +192,32 @@ export interface Fetcher {
 	}>;
 }
 
-export type FetcherFactory = () => Promise<{
-	init: (options: { lokiUrl: string }) => Fetcher;
-}>;
+export type FetcherFactory = () => {
+	init: (options: { lokiUrl: string; getAdditionalHeaders?: () => Headers }) => Fetcher;
+};
 
-export const createFetcher: FetcherFactory = async () => {
+export const createFetcher: FetcherFactory = () => {
 	return {
-		init({ lokiUrl }) {
+		init({ lokiUrl, getAdditionalHeaders }) {
 			const lokiClient = createLokiClient(lokiUrl);
 
 			return async ({ query, limit, from, to }) => {
 				const lineCount = limit + 1; // +1 for pointer
 
-				const data = await lokiClient.query_range({ query, limit: lineCount, from, to });
+				const additionalHeaders = getAdditionalHeaders?.();
 
-				const output = data.data.result.flatMap((stream: any) => {
-					return stream.values.flatMap(([timestamp, line]: any) => {
+				const data = await lokiClient.query_range({
+					query,
+					limit: lineCount,
+					from,
+					to,
+					additionalHeaders,
+				});
+
+				const output = data.data.result.flatMap(result => {
+					return result.values.flatMap(([timestamp, line]): LokiRecord => {
 						return {
-							timestamp: new Date(timestamp / 1000 / 1000).toISOString(),
+							timestamp: new Date(timestamp / 1000 / 1000),
 							rawTimestamp: BigInt(timestamp),
 							line,
 						};
