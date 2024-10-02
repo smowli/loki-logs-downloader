@@ -1,3 +1,5 @@
+## [2.1.1](https://github.com/vosmol/loki-logs-downloader/compare/2.1.0...2.1.1) (2024-10-02)
+
 ## [2.1.0](https://github.com/vosmol/loki-logs-downloader/compare/2.0.0...2.1.0) (2024-10-02)
 
 ### Features 🚀
