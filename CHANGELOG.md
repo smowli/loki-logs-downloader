@@ -1,3 +1,9 @@
+## [2.1.0](https://github.com/vosmol/loki-logs-downloader/compare/2.0.0...2.1.0) (2024-10-02)
+
+### Features 🚀
+
+- switch to public registry ([9d275a4](https://github.com/vosmol/loki-logs-downloader/commit/9d275a43135c1e7d0a7472afddb6b205873444f7))
+
 ## [2.0.0](https://github.com/vosmol/loki-logs-downloader/compare/1.2.0...2.0.0) (2024-10-01)
 
 ### ⚠ BREAKING CHANGES
