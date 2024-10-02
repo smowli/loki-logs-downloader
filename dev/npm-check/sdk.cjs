@@ -1,4 +1,4 @@
-const { download } = require('@vosmol/loki-logs-downloader');
+const { download } = require('loki-logs-downloader');
 
 async function main() {
 	await download({

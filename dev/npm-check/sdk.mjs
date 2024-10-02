@@ -1,4 +1,4 @@
-import { download } from '@vosmol/loki-logs-downloader'
+import { download } from 'loki-logs-downloader'
 
 async function main() {
 	await download({

@@ -9,13 +9,13 @@
 		"from": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-10-01T15:57:40.584Z",
+			"default": "2024-10-02T19:25:46.475Z",
 			"description": "Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour."
 		},
 		"to": {
 			"type": "string",
 			"format": "date-time",
-			"default": "2024-10-01T16:57:40.584Z",
+			"default": "2024-10-02T20:25:46.475Z",
 			"description": "Represents the ending timestamp until which the logs will be queried. Defaults to now."
 		},
 		"clearOutputDir": {

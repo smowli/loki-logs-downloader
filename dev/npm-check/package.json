@@ -5,9 +5,9 @@
 		"test:sdk-ts": "tsx ./sdk.ts",
 		"test:sdk-cjs": "node ./sdk.cjs",
 		"test:sdk-esm": "node ./sdk.mjs",
-		"pull": "npm install @vosmol/loki-logs-downloader@latest"
+		"pull": "npm install loki-logs-downloader@latest"
 	},
 	"dependencies": {
-		"@vosmol/loki-logs-downloader": "^2.0.0"
+		"loki-logs-downloader": "^2.0.0"
 	}
 }

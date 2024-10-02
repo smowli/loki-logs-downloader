@@ -1,5 +1,5 @@
 {
-	"name": "@vosmol/loki-logs-downloader",
+	"name": "loki-logs-downloader",
 	"description": "CLI for downloading logs from Loki API",
 	"version": "2.0.0",
 	"license": "MIT",
@@ -43,7 +43,7 @@
 		}
 	},
 	"publishConfig": {
-		"access": "restricted",
+		"access": "public",
 		"ignore": [
 			".github/",
 			".husky/",
