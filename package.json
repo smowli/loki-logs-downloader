@@ -23,6 +23,9 @@
 	},
 	"release-it": {
 		"$schema": "https://unpkg.com/release-it/schema/release-it.json",
+		"github": {
+			"release": true
+		},
 		"plugins": {
 			"@release-it/conventional-changelog": {
 				"preset": {
