@@ -1,3 +1,9 @@
+## [2.2.2](https://github.com/vosmol/loki-logs-downloader/compare/2.2.1...2.2.2) (2024-10-03)
+
+### Bug Fixes 🦗
+
+- sdk options type ([c7ba1c1](https://github.com/vosmol/loki-logs-downloader/commit/c7ba1c10125d9357418e900881db7eb481be28d4))
+
 ## [2.2.1](https://github.com/vosmol/loki-logs-downloader/compare/2.2.0...2.2.1) (2024-10-03)
 
 ### Bug Fixes 🦗
