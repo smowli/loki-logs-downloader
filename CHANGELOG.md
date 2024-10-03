@@ -1,3 +1,9 @@
+## [2.2.1](https://github.com/vosmol/loki-logs-downloader/compare/2.2.0...2.2.1) (2024-10-03)
+
+### Bug Fixes 🦗
+
+- add abort controller type to sdk ([0dfae8a](https://github.com/vosmol/loki-logs-downloader/commit/0dfae8ab10ead4dc85f31a13db406eae6fa53f36))
+
 ## [2.2.0](https://github.com/vosmol/loki-logs-downloader/compare/2.1.2...2.2.0) (2024-10-03)
 
 ### Features 🚀
