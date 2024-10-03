@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/vosmol/loki-logs-downloader/compare/2.1.2...2.2.0) (2024-10-03)
+
+### Features 🚀
+
+- handle sigterm with abort signal ([15401f7](https://github.com/vosmol/loki-logs-downloader/commit/15401f7ff8091c1caab3d7b2140487cb4f642d39))
+
 ## [2.1.2](https://github.com/vosmol/loki-logs-downloader/compare/2.1.1...2.1.2) (2024-10-02)
 
 ## [2.1.1](https://github.com/vosmol/loki-logs-downloader/compare/2.1.0...2.1.1) (2024-10-02)
