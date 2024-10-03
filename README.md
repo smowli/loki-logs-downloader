@@ -46,12 +46,51 @@ It also comes in both **CLI and SDK flavors**. You can run it as-is, but advance
 
 ## 🏃 Getting Started
 
-### Installation
+### Installation & Usage
+
+The package is published at [npm](https://www.npmjs.com/package/loki-logs-downloader)
 
 #### CLI:
 
+Execute it through npx
+
 ```bash
 npx loki-logs-downloader <...cli_params[]>
+```
+
+##### Examples
+
+For list of all params use -h, --help flag:
+
+```bash
+npx loki-logs-downloader -h
+```
+
+Download logs for a whole day:
+
+```bash
+npx loki-logs-downloader \
+  --lokiUrl http://localhost:3100 \
+  --query '{app="test"}' \
+  --from 2024-10-03T00:00:00.000Z \
+  --to 2024-10-03T24:00:00.000Z \
+  --fileRecordsLimit 1000 \
+  --coolDown 1000
+```
+
+You can also provide same params with a json config file:
+
+```bash
+echo '{
+"lokiUrl": "http://localhost:3100",
+"query": "{app=\"test\"}",
+"from": "2024-10-03T00:00:00.000Z",
+"to": "2024-10-03T24:00:00.000Z",
+"fileRecordsLimit": 1000,
+"coolDown": 1000
+}' > ./config.json
+
+npx loki-logs-downloader --configFile ./config.json
 ```
 
 #### SDK:
