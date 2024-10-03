@@ -93,6 +93,15 @@ export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {
 	to: string;
 };
 
+export interface MainOptions {
+	loggerFactory: LoggerFactory;
+	stateStoreFactory: StateStoreFactory;
+	fileSystemFactory: FileSystemFactory;
+	fetcherFactory: FetcherFactory;
+	config: Partial<Config>;
+	abortController?: AbortController;
+}
+
 export async function main({
 	loggerFactory,
 	stateStoreFactory,
@@ -100,14 +109,7 @@ export async function main({
 	fetcherFactory,
 	config,
 	abortController: ownAbortController,
-}: {
-	loggerFactory: LoggerFactory;
-	stateStoreFactory: StateStoreFactory;
-	fileSystemFactory: FileSystemFactory;
-	fetcherFactory: FetcherFactory;
-	config: Partial<Config>;
-	abortController?: AbortController;
-}) {
+}: MainOptions) {
 	// ### dependencies
 
 	const logger = loggerFactory();
