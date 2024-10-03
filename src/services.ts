@@ -12,7 +12,7 @@ import md5 from 'md5';
 import { EOL } from 'os';
 import { dirname, join } from 'path';
 import { z } from 'zod';
-import { FOLDERS } from './constants';
+import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { createLokiClient } from './loki';
 import { nanosecondsToMilliseconds, secondsToMilliseconds } from './util';
 
@@ -22,6 +22,7 @@ const stateSchema = z.object({
 	queryRecordsExhausted: z.boolean(),
 	fileNumber: z.number(),
 	iteration: z.number(),
+	prevSavedRecordsInFile: z.number(),
 });
 
 type State = z.infer<typeof stateSchema>;
@@ -186,11 +187,19 @@ export interface LokiRecord {
 	record: string;
 }
 
+export interface FetcherResult {
+	returnedRecords: LokiRecord[];
+	pointer: LokiRecord | undefined;
+}
+
 export interface Fetcher {
-	(options: { from: bigint; to: Date; query: string; limit: number }): Promise<{
-		returnedRecords: LokiRecord[];
-		pointer: LokiRecord | undefined;
-	}>;
+	(options: {
+		from: bigint;
+		to: Date;
+		query: string;
+		limit: number;
+		abort: AbortSignal;
+	}): Promise<FetcherResult>;
 }
 
 export type FetcherFactory = () => {
@@ -202,7 +211,7 @@ export const createFetcher: FetcherFactory = () => {
 		init({ lokiUrl, getAdditionalHeaders }) {
 			const lokiClient = createLokiClient(lokiUrl);
 
-			return async ({ query, limit, from, to }) => {
+			return async ({ query, limit, from, to, abort }) => {
 				const recordCount = limit + 1; // +1 for pointer
 
 				const additionalHeaders = getAdditionalHeaders?.();
@@ -213,7 +222,12 @@ export const createFetcher: FetcherFactory = () => {
 					from,
 					to,
 					additionalHeaders,
+					abort,
 				});
+
+				if (data === ABORT_SIGNAL) {
+					return { returnedRecords: [], pointer: undefined };
+				}
 
 				const output = data.data.result.flatMap(result => {
 					return result.values.flatMap(([timestamp, record]): LokiRecord => {

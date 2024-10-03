@@ -2,7 +2,7 @@ import { join } from 'path';
 import { exit } from 'process';
 import prompts from 'prompts';
 import { z } from 'zod';
-import { FOLDERS } from './constants';
+import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { FetcherFactory, FileSystemFactory, LoggerFactory, StateStoreFactory } from './services';
 import { getNanoseconds, hoursToMs, wait } from './util';
 
@@ -99,19 +99,43 @@ export async function main({
 	fileSystemFactory,
 	fetcherFactory,
 	config,
+	abortController: ownAbortController,
 }: {
 	loggerFactory: LoggerFactory;
 	stateStoreFactory: StateStoreFactory;
 	fileSystemFactory: FileSystemFactory;
 	fetcherFactory: FetcherFactory;
 	config: Partial<Config>;
+	abortController?: AbortController;
 }) {
-	try {
-		const logger = loggerFactory();
-		const fs = fileSystemFactory();
-		const stateStoreInstance = stateStoreFactory({ fs, logger });
-		const fetcherInstance = await fetcherFactory();
+	// ### dependencies
 
+	const logger = loggerFactory();
+	const fs = fileSystemFactory();
+	const stateStoreInstance = stateStoreFactory({ fs, logger });
+	const fetcherInstance = fetcherFactory();
+
+	// ### setup graceful shutdown
+
+	const abortController = ownAbortController || new AbortController();
+
+	const shutDown = (signal: NodeJS.Signals) => {
+		logger.info(`🛑 ${signal} signal received. Shutting down...`);
+
+		abortController.abort(ABORT_SIGNAL);
+
+		cleanUpListeners();
+	};
+
+	process.addListener('SIGTERM', shutDown);
+	process.addListener('SIGINT', shutDown);
+
+	const cleanUpListeners = () => {
+		process.removeListener('SIGTERM', shutDown);
+		process.removeListener('SIGINT', shutDown);
+	};
+
+	try {
 		// ### use json config file instead cmd params if configured
 
 		const { configFile } = configSchema
@@ -163,6 +187,7 @@ export async function main({
 		let totalRecords = 0;
 		let iteration = 0;
 		let queryRecordsExhausted = false;
+		let prevSavedRecordsInFile = 0;
 
 		// ### state recovery
 
@@ -184,6 +209,7 @@ export async function main({
 			totalRecords = prevState.totalRecords;
 			iteration = prevState.iteration;
 			queryRecordsExhausted = prevState.queryRecordsExhausted;
+			prevSavedRecordsInFile = prevState.prevSavedRecordsInFile;
 		}
 
 		// ### output directory cleanup
@@ -234,15 +260,22 @@ export async function main({
 			},
 		});
 
-		let prevSavedRecordsInFile = 0;
-
-		while (totalRecords < totalRecordsLimit && !queryRecordsExhausted) {
+		while (
+			totalRecords < totalRecordsLimit &&
+			!queryRecordsExhausted &&
+			abortController.signal.aborted === false
+		) {
 			if (iteration !== 0 && coolDown) {
 				logger.info(`coolDown configured, waiting for ${coolDown}ms before fetching next records`);
+
 				await wait(coolDown);
+
+				if (abortController.signal.aborted) {
+					throw ABORT_SIGNAL;
+				}
 			}
 
-			// # record fetching
+			// ### record fetching
 
 			const remainingRecords = totalRecordsLimit - totalRecords;
 
@@ -255,15 +288,16 @@ export async function main({
 				to: toDate,
 				limit: fetchRecordCount,
 				query: query,
+				abort: abortController.signal,
 			});
 
-			// # split records to files
+			// ### split records to files
 
+			const files = [];
+			let savedRecords = 0;
 			const returnedRecordsCount = returnedRecords.length;
 
-			let savedRecords = 0;
-
-			while (savedRecords !== returnedRecordsCount) {
+			while (savedRecords !== returnedRecordsCount && abortController.signal.aborted === false) {
 				const fileSpace = recordsLimitPerFile - prevSavedRecordsInFile;
 
 				const remainingRecords = returnedRecordsCount - savedRecords;
@@ -280,13 +314,25 @@ export async function main({
 
 				const filename = join(outputDirPath, `${fileNumber}.txt`);
 
-				logger.info(`saving ${usedRecords.length} records to ${filename}`);
-
-				await fs.outputLogs(filename, usedRecords);
+				files.push({ filename, usedRecords });
 
 				savedRecords += usedRecords.length;
 				prevSavedRecordsInFile = prevSavedRecordsInFile + usedRecords.length;
 			}
+
+			if (abortController.signal.aborted) {
+				// Do not save partial state and files just to be safe - rather repeat the download
+				throw ABORT_SIGNAL;
+			}
+
+			// ### save files, but only IF NOT ABORTED!
+			for (const { filename, usedRecords } of files) {
+				logger.info(`saving ${usedRecords.length} records to ${filename}`);
+
+				await fs.outputLogs(filename, usedRecords);
+			}
+
+			// ### store state
 
 			if (pointer) {
 				startFromTimestamp = pointer.rawTimestamp;
@@ -302,12 +348,19 @@ export async function main({
 				queryRecordsExhausted,
 				fileNumber,
 				iteration,
+				prevSavedRecordsInFile,
 			});
 		}
 
 		logger.info(`all query results were downloaded, exiting now`);
 	} catch (error) {
+		if (error === ABORT_SIGNAL) {
+			return;
+		}
+
 		// TODO: Better error handling
 		throw error;
+	} finally {
+		cleanUpListeners();
 	}
 }

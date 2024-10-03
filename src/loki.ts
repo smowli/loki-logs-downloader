@@ -6,6 +6,7 @@ DOCS REFERENCE
 
 import { z } from 'zod';
 import { BaseError, UnrecoverableError } from './error';
+import { ABORT_SIGNAL } from './constants';
 
 export const LOKI_API_ERRORS = {
 	queryMaxLimit: 'max entries limit per query exceeded',
@@ -63,39 +64,49 @@ export const createLokiClient = (lokiUrl: string) => {
 			from,
 			to,
 			additionalHeaders,
+			abort = null,
 		}: {
 			query: string;
 			limit?: number;
 			from?: Date | bigint | number;
 			to?: Date | bigint | number;
 			additionalHeaders?: Headers | undefined;
+			abort?: AbortSignal | null | undefined;
 		}) => {
-			const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
+			try {
+				const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
 
-			url.searchParams.set('direction', 'FORWARD');
-			url.searchParams.set('query', query);
-			if (limit) url.searchParams.set('limit', limit.toString());
-			if (from) url.searchParams.set('start', timestampUrlValue(from));
-			if (to) url.searchParams.set('end', timestampUrlValue(to));
+				url.searchParams.set('direction', 'FORWARD');
+				url.searchParams.set('query', query);
+				if (limit) url.searchParams.set('limit', limit.toString());
+				if (from) url.searchParams.set('start', timestampUrlValue(from));
+				if (to) url.searchParams.set('end', timestampUrlValue(to));
 
-			const headers = new Headers(additionalHeaders);
+				const headers = new Headers(additionalHeaders);
 
-			const response = await fetch(url, { headers });
+				const response = await fetch(url, { headers, signal: abort });
 
-			if (!response.ok) {
-				const responseText = await response.text();
-				if (responseText.includes(LOKI_API_ERRORS.queryMaxLimit)) {
-					throw new MaxEntriesLimitPerQueryExceeded();
+				if (!response.ok) {
+					const responseText = await response.text();
+					if (responseText.includes(LOKI_API_ERRORS.queryMaxLimit)) {
+						throw new MaxEntriesLimitPerQueryExceeded();
+					}
+
+					throw new LokiApiError(responseText);
 				}
 
-				throw new LokiApiError(responseText);
+				const rawData = await response.json();
+
+				const parsedData = lokiApiResponseSchema.parse(rawData);
+
+				return parsedData;
+			} catch (error) {
+				if (error === ABORT_SIGNAL) {
+					return ABORT_SIGNAL;
+				}
+
+				throw error;
 			}
-
-			const rawData = await response.json();
-
-			const parsedData = lokiApiResponseSchema.parse(rawData);
-
-			return parsedData;
 		},
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);

@@ -3,7 +3,7 @@ import { glob } from 'glob';
 import { EOL } from 'os';
 import { join } from 'path';
 import { beforeAll, expect, it } from 'vitest';
-import { DEFAULT_LOKI_URL, FOLDERS } from './constants';
+import { ABORT_SIGNAL, DEFAULT_LOKI_URL, FOLDERS } from './constants';
 import { createLokiClient } from './loki';
 import { main } from './main';
 import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
@@ -84,6 +84,7 @@ async function setupLoki({
 
 	const existingData = await lokiClient.query_range({ query: findQuery });
 
+	assert(existingData !== ABORT_SIGNAL);
 	assert(existingData.status === 'success');
 
 	const dataExists = existingData.data.result.some(record => record.values.length !== 0);

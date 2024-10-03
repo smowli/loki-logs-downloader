@@ -5,7 +5,14 @@ import { join } from 'path';
 import { beforeAll, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { DEFAULT_LOKI_URL, FOLDERS } from './constants';
 import { Config, main } from './main';
-import { Fetcher, LokiRecord, createFileSystem, createLogger, createStateStore } from './services';
+import {
+	Fetcher,
+	FetcherResult,
+	LokiRecord,
+	createFileSystem,
+	createLogger,
+	createStateStore,
+} from './services';
 import { getNanoseconds, nanosecondsToMilliseconds, retry } from './util';
 
 const ROOT_OUTPUT_DIR = 'test-outputs';
@@ -125,7 +132,7 @@ it(`downloads logs & recovers state`, async () => {
 
 	const testFetcher = testFetcherFactory({
 		totalRecords: 590,
-		customHandler({ called }) {
+		onCalled({ called }) {
 			if (called % 2 === 0) {
 				throw new Error('fail for retry');
 			}
@@ -146,6 +153,7 @@ it(`downloads logs & recovers state`, async () => {
 				batchRecordsLimit: 200,
 				clearOutputDir: true,
 				promptToStart: false,
+				fileRecordsLimit: 300,
 			},
 		})
 	);
@@ -161,7 +169,7 @@ it(`downloads logs & recovers state`, async () => {
 
 	const sortedDownloadFilesPaths = downloadFilesPaths.sort();
 
-	expect(sortedDownloadFilesPaths.length).toBe(1);
+	expect(sortedDownloadFilesPaths.length).toBe(2);
 	expect(stateFilesPath.length).toBe(1);
 
 	// ### Check fetcher state
@@ -175,7 +183,7 @@ it(`downloads logs & recovers state`, async () => {
 	);
 
 	expect(stateFile).toMatchObject({
-		fileNumber: 0,
+		fileNumber: 1,
 		queryRecordsExhausted: true,
 		startFromTimestamp: fetcherTestState.lastTimestamp?.toString(),
 		totalRecords: 590,
@@ -195,7 +203,59 @@ it(`downloads logs & recovers state`, async () => {
 		)
 	);
 
-	expect(downloadFiles[0].length).toBe(590);
+	expect(downloadFiles[0].length).toBe(300);
+	expect(downloadFiles[1].length).toBe(290);
+});
+
+it('aborts properly on abort signal', async () => {
+	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'abort-test');
+
+	const abortController = new AbortController();
+
+	const testFetcher = testFetcherFactory({
+		totalRecords: 5000,
+		onCalled({ called }) {
+			// abort after first call
+			if (called > 1) {
+				abortController.abort();
+			}
+		},
+	});
+
+	let resultState = {};
+
+	await main({
+		fetcherFactory: () => testFetcher,
+		fileSystemFactory: () => ({
+			...createFileSystem(OUTPUT_DIR),
+			async saveState(path, state) {
+				resultState = state;
+			},
+		}),
+		stateStoreFactory: createStateStore,
+		loggerFactory: () => createLogger('error'),
+		abortController,
+		config: {
+			outputName: OUTPUT_NAME,
+			query: '{app="test"}',
+			lokiUrl: DEFAULT_LOKI_URL,
+			coolDown: null,
+			batchRecordsLimit: 1000,
+			clearOutputDir: true,
+			promptToStart: false,
+		},
+	});
+
+	const fetcherTestState = testFetcher.testData();
+
+	expect(fetcherTestState.called).toBe(2);
+
+	expect(resultState).toMatchObject({
+		fileNumber: 0,
+		queryRecordsExhausted: false,
+		startFromTimestamp: fetcherTestState.lastTimestamp?.toString(),
+		totalRecords: 1000,
+	});
 });
 
 it('uses config file if option is set', async () => {
@@ -356,8 +416,8 @@ describe('state files', () => {
 
 function testFetcherFactory(options: {
 	totalRecords: number;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	customHandler?: (state: { called: number }) => any;
+	customData?: (state: { called: number }) => FetcherResult;
+	onCalled?: (state: { called: number }) => void;
 }): {
 	init: (options: { lokiUrl: string }) => Fetcher;
 	testData: () => {
@@ -370,18 +430,27 @@ function testFetcherFactory(options: {
 	let called = 0;
 	const batchTimestamps: { from: Date; to: Date }[] = [];
 	let remainingRecords = options.totalRecords;
+	const aborted = false;
 
 	return {
 		testData: () => ({
 			called,
 			lastTimestamp,
 			batchTimestamps,
+			aborted,
 		}),
 		init() {
-			return async ({ from, limit }) => {
+			return async ({ from, limit, abort }) => {
 				called++;
+				options?.onCalled?.({ called });
 
-				if (remainingRecords === 0) return { returnedRecords: [] };
+				if (abort.aborted) {
+					return { returnedRecords: [], pointer: undefined };
+				}
+
+				if (remainingRecords === 0) {
+					return { returnedRecords: [], pointer: undefined };
+				}
 
 				const recordCount = Math.min(limit, remainingRecords);
 
@@ -405,7 +474,7 @@ function testFetcherFactory(options: {
 					to: records.at(-1)!.timestamp,
 				});
 
-				const data = options.customHandler?.({ called }) || {
+				const data = options.customData?.({ called }) || {
 					returnedRecords: records,
 					pointer: pointer,
 				};

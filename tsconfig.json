@@ -12,7 +12,7 @@
 
 		/* Language and Environment */
 		"target": "ES2023",
-		"types": [],
+		"types": ["@types/node"],
 		// "lib": [],
 		// "jsx": "preserve",
 		// "experimentalDecorators": true,
