@@ -1,14 +1,21 @@
-import { main, MainOptions } from './main';
-import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
+import { Config, main } from './main';
+import {
+	createFetcher,
+	createFileSystem,
+	createLogger,
+	createStateStore,
+	FileSystemFactory,
+	LoggerFactory,
+} from './services';
 
 export { createFileSystem as fileSystemFactory, createLogger as loggerFactory } from './services';
 
-export type SdkOptions = Pick<
-	MainOptions,
-	'fileSystemFactory' | 'loggerFactory' | 'config' | 'abortController'
->;
-
-export const download = async (options: SdkOptions) =>
+export const download = async (options: {
+	loggerFactory?: LoggerFactory;
+	fileSystemFactory?: FileSystemFactory;
+	abortController?: AbortController;
+	config: Partial<Config>;
+}) =>
 	await main({
 		loggerFactory: options.loggerFactory || createLogger,
 		stateStoreFactory: createStateStore,
