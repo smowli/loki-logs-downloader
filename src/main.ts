@@ -122,7 +122,7 @@ export async function main({
 	const abortController = ownAbortController || new AbortController();
 
 	const shutDown = (signal: NodeJS.Signals) => {
-		logger.info(`🛑 ${signal} signal received. Shutting down...`);
+		logger.info('🛑', `${signal} signal received. Shutting down...`);
 
 		abortController.abort(ABORT_SIGNAL);
 
@@ -235,13 +235,14 @@ export async function main({
 
 				if (!response.delete) {
 					logger.info(
-						`Can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again.`
+						'🚧',
+						`can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again`
 					);
 					exit();
 				}
 			}
 
-			logger.info(`removing files in ${outputDirPath} directory`);
+			logger.info('🗑️', `removing files in ${outputDirPath} directory`);
 
 			await fs.emptyOutputDir(outputDirPath);
 		}
@@ -268,7 +269,10 @@ export async function main({
 			abortController.signal.aborted === false
 		) {
 			if (iteration !== 0 && coolDown) {
-				logger.info(`coolDown configured, waiting for ${coolDown}ms before fetching next records`);
+				logger.info(
+					'⏳',
+					`coolDown configured, waiting for ${coolDown}ms before fetching next records`
+				);
 
 				await wait(coolDown);
 
@@ -283,7 +287,7 @@ export async function main({
 
 			const fetchRecordCount = Math.min(remainingRecords, batchRecordsLimit);
 
-			logger.info(`fetching next ${fetchRecordCount} records`);
+			logger.info('⬇️', `fetching next ${fetchRecordCount} records`);
 
 			const { returnedRecords, pointer } = await fetchRecords({
 				from: startFromTimestamp,
@@ -329,7 +333,7 @@ export async function main({
 
 			// ### save files, but only IF NOT ABORTED!
 			for (const { filename, usedRecords } of files) {
-				logger.info(`saving ${usedRecords.length} records to ${filename}`);
+				logger.info('🗃️', `saving ${usedRecords.length} records to ${filename}`);
 
 				await fs.outputLogs(filename, usedRecords);
 			}
@@ -354,7 +358,7 @@ export async function main({
 			});
 		}
 
-		logger.info(`all query results were downloaded, exiting now`);
+		logger.info('✅', `all query results were downloaded, exiting now`);
 	} catch (error) {
 		if (error === ABORT_SIGNAL) {
 			return;

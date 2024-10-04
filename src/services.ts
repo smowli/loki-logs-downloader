@@ -50,9 +50,8 @@ export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
 					if (!state) return;
 
 					logger.info(
-						`Found previous state ${JSON.stringify(
-							state
-						)} at ${statePath}. Continuing where left off.`
+						'🚀',
+						`found previous state under ${integrityKey}. Continuing where left off`
 					);
 
 					return stateSchema.parse(JSON.parse(state));
