@@ -86,6 +86,10 @@ export const configSchema = z.object({
 		.array(z.string())
 		.optional()
 		.describe('Adds X-Query-Tags header to API requests for tracking the query.'),
+	prettyLogs: z
+		.boolean()
+		.default(true)
+		.describe('Add make output fancier when printing progress logs.'),
 });
 
 export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {

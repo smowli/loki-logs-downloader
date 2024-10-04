@@ -66,31 +66,43 @@ export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
 
 export interface Logger {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	error: (...args: any[]) => void;
+	error: (emoji: string | null, ...args: any[]) => void;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	info: (...args: any[]) => void;
+	info: (emoji: string | null, ...args: any[]) => void;
 }
 
 export type LogLevel = 'info' | 'error';
 
-export type LoggerFactory = (level?: LogLevel) => Logger;
+export type LoggerFactory = (level?: LogLevel, pretty?: boolean) => Logger;
 
 const logLevelMap: Record<LogLevel, number> = {
 	info: 1,
 	error: 0,
 };
 
-export const createLogger: LoggerFactory = (level = 'info') => {
+export const createLogger: LoggerFactory = (level = 'info', pretty?: boolean) => {
 	const isLowerLogLevel = (level: LogLevel, compareTo: LogLevel) =>
 		logLevelMap[level] < logLevelMap[compareTo];
 
 	return {
-		error(...args) {
+		error(...[emoji, ...args]) {
 			if (isLowerLogLevel(level, 'error')) return;
+
+			if (pretty) {
+				console.error('[ERROR]', ...[emoji, ...args]);
+				return;
+			}
+
 			console.error('[ERROR]', ...args);
 		},
-		info(...args) {
+		info(...[emoji, ...args]) {
 			if (isLowerLogLevel(level, 'info')) return;
+
+			if (pretty) {
+				console.error('[INFO]', ...[emoji, ...args]);
+				return;
+			}
+
 			console.log('[INFO]', ...args);
 		},
 	};
