@@ -2,7 +2,7 @@
 
 Unofficial tool for downloading large amounts of logs from the Grafana Loki API 📖
 
-[![Watch the video](./docs/thumbnail.jpg)](./docs/video.mp4)
+![Thumbnail](./docs/thumbnail.jpg)
 
 > ⚠️ This tool is still under active development. It is quite capable, but some features might still be missing. There also may be changes to the API and the behavior in the future. ⚠️
 
