@@ -1,3 +1,5 @@
+## [2.2.4](https://github.com/vosmol/loki-logs-downloader/compare/2.2.3...2.2.4) (2024-10-04)
+
 ## [2.2.3](https://github.com/vosmol/loki-logs-downloader/compare/2.2.2...2.2.3) (2024-10-04)
 
 ## [2.2.2](https://github.com/vosmol/loki-logs-downloader/compare/2.2.1...2.2.2) (2024-10-03)
