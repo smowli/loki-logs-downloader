@@ -50,7 +50,7 @@ export const configSchema = z.object({
 	coolDown: z
 		.number()
 		.nullable()
-		.default(10_000)
+		.default(5_000)
 		.describe('Time to wait between fetching the next batch of records from the Loki API.'),
 	totalRecordsLimit: z
 		.number()
