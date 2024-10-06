@@ -7,7 +7,7 @@ import { DEFAULT_LOKI_URL, FOLDERS } from '../constants';
 import { Config, main } from '../main';
 import { State, createFileSystem, createLogger, createStateStoreFactory } from '../services';
 import { retry } from '../util';
-import { createTestFetcherFactory } from './utils';
+import { createTestFetcherFactory } from './test-utils';
 
 const ROOT_OUTPUT_DIR = 'test-outputs';
 const OUTPUT_NAME = 'download';
