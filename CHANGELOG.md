@@ -1,3 +1,9 @@
+## [3.0.4](https://github.com/vosmol/loki-logs-downloader/compare/3.0.3...3.0.4) (2024-10-06)
+
+### Bug Fixes 🦗
+
+- console.log instead of error in default logger ([93bd9e9](https://github.com/vosmol/loki-logs-downloader/commit/93bd9e91d30da892ce6397da722d162a6adac82f))
+
 ## [3.0.3](https://github.com/vosmol/loki-logs-downloader/compare/3.0.2...3.0.3) (2024-10-06)
 
 ### Bug Fixes 🦗
