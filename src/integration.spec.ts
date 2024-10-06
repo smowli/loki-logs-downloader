@@ -1,3 +1,4 @@
+import assert from 'assert';
 import { readFile, remove } from 'fs-extra';
 import { glob } from 'glob';
 import { EOL } from 'os';
@@ -6,9 +7,13 @@ import { beforeAll, expect, it } from 'vitest';
 import { ABORT_SIGNAL, DEFAULT_LOKI_URL, FOLDERS } from './constants';
 import { createLokiClient } from './loki';
 import { main } from './main';
-import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
-import { getNanoseconds } from './util';
-import assert from 'assert';
+import {
+	createFetcherFactory,
+	createFileSystem,
+	createLogger,
+	createStateStoreFactory,
+} from './services';
+import { getNanoseconds, retry, wait } from './util';
 
 const lokiUrl = DEFAULT_LOKI_URL;
 const LABELS = { app: 'test' };
@@ -25,16 +30,18 @@ beforeAll(async () => {
 		lokiUrl,
 		findQuery: TEST_QUERY,
 	});
-});
+}, 60_000);
 
-it('Downloads logs from real loki API', {}, async () => {
+it('Downloads logs from real loki API', async () => {
 	const totalRecordsLimit = 6103;
+	const logger = createLogger('error');
+	const fileSystem = createFileSystem(OUTPUT_DIR);
 
 	await main({
-		fetcherFactory: createFetcher,
-		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
-		stateStoreFactory: createStateStore,
-		loggerFactory: () => createLogger('error'),
+		fetcherFactory: createFetcherFactory(),
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fileSystem,
+		logger,
 		config: {
 			query: TEST_QUERY,
 			lokiUrl: lokiUrl,
@@ -82,33 +89,55 @@ async function setupLoki({
 }) {
 	const lokiClient = createLokiClient(lokiUrl);
 
-	const existingData = await lokiClient.query_range({ query: findQuery });
+	await retry(20, async () => {
+		const isReady = await lokiClient.isReady();
 
-	assert(existingData !== ABORT_SIGNAL);
-	assert(existingData.status === 'success');
-
-	const dataExists = existingData.data.result.some(record => record.values.length !== 0);
-
-	if (!dataExists) {
-		console.log('pushing test logs to loki');
-
-		const batchSize = 1000;
-		const batches = Math.ceil(recordCount / batchSize);
-
-		for (let batchNumber = 0; batchNumber < batches; batchNumber++) {
-			await lokiClient.push({
-				streams: [
-					{
-						stream: labels,
-						values: Array.from({ length: 1000 }).map((_, index) => {
-							return [
-								getNanoseconds().toString(),
-								`log line: ${batchNumber * batchSize + (index + 1)}`,
-							];
-						}),
-					},
-				],
-			});
+		if (!isReady) {
+			await wait(2000);
+			throw new Error('Loki API not ready yet. Waiting...');
 		}
+	});
+
+	const checkData = async () => {
+		const response = await lokiClient.query_range({ query: findQuery });
+
+		assert(response !== ABORT_SIGNAL);
+		assert(response.status === 'success');
+
+		const dataExists = response.data.result.some(record => record.values.length !== 0);
+
+		return dataExists;
+	};
+
+	const dataExists = await checkData();
+
+	if (dataExists) return;
+
+	const batchSize = 1000;
+	const batches = Math.ceil(recordCount / batchSize);
+
+	for (let batchNumber = 0; batchNumber < batches; batchNumber++) {
+		await lokiClient.push({
+			streams: [
+				{
+					stream: labels,
+					values: Array.from({ length: 1000 }).map((_, index) => {
+						return [
+							getNanoseconds().toString(),
+							`log line: ${batchNumber * batchSize + (index + 1)}`,
+						];
+					}),
+				},
+			],
+		});
 	}
+
+	await retry(20, async () => {
+		const dataExists = await checkData();
+
+		if (!dataExists) {
+			await wait(2000);
+			throw new Error('Data not propagated yet. Waiting...');
+		}
+	});
 }

@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
-import { main } from './main';
-import { createFetcher, createFileSystem, createLogger, createStateStore } from './services';
+import { Config, main, readConfig } from './main';
+import {
+	createFetcherFactory,
+	createFileSystem,
+	createLogger,
+	createStateStoreFactory,
+} from './services';
 
-import pkg from '../package.json';
 import configJsonSchema from '../config-schema.json';
+import pkg from '../package.json';
 
 const configSchema = configJsonSchema.properties;
 
@@ -35,14 +40,17 @@ program
 	.option('--headers [headers...]', configSchema.headers.description)
 	.option('--queryTags [tags...]', configSchema.queryTags.description)
 	// ==================================================
-	.action(async params => {
+	.action(async (params: Partial<Config>) => {
+		const fileSystem = createFileSystem();
+		const config = await readConfig(params, fileSystem);
+		const logger = createLogger(undefined, config.prettyLogs);
+
 		await main({
-			loggerFactory: createLogger,
-			stateStoreFactory: createStateStore,
-			fileSystemFactory: createFileSystem,
-			fetcherFactory: createFetcher,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			config: params as any, // no worries, these are parsed and validated further
+			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+			fetcherFactory: createFetcherFactory(),
+			logger,
+			fileSystem,
+			config,
 		});
 	});
 

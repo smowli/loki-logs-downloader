@@ -25,7 +25,7 @@ const stateSchema = z.object({
 	prevSavedRecordsInFile: z.number(),
 });
 
-type State = z.infer<typeof stateSchema>;
+export type State = z.infer<typeof stateSchema>;
 
 export interface StateStore {
 	load: () => Promise<State | undefined>;
@@ -33,13 +33,19 @@ export interface StateStore {
 	save: (state: State) => Promise<void>;
 }
 
-export type StateStoreFactory = (params: { fs: FileSystem; logger: Logger }) => {
-	init: (...inputs: string[]) => StateStore;
+export type StateStoreFactory = {
+	create: (...inputs: string[]) => StateStore;
 };
 
-export const createStateStore: StateStoreFactory = ({ fs, logger }) => {
+export const createStateStoreFactory = ({
+	fileSystem: fs,
+	logger,
+}: {
+	fileSystem: FileSystem;
+	logger: Logger;
+}): StateStoreFactory => {
 	return {
-		init(...inputs) {
+		create(...inputs) {
 			const integrityKey = md5(inputs.join('-'));
 			const statePath = join(FOLDERS.internal, FOLDERS.state, `${integrityKey}.json`);
 
@@ -73,14 +79,12 @@ export interface Logger {
 
 export type LogLevel = 'info' | 'error';
 
-export type LoggerFactory = (level?: LogLevel, pretty?: boolean) => Logger;
-
 const logLevelMap: Record<LogLevel, number> = {
 	info: 1,
 	error: 0,
 };
 
-export const createLogger: LoggerFactory = (level = 'info', pretty?: boolean) => {
+export const createLogger = (level: LogLevel = 'error', pretty: boolean = true): Logger => {
 	const isLowerLogLevel = (level: LogLevel, compareTo: LogLevel) =>
 		logLevelMap[level] < logLevelMap[compareTo];
 
@@ -117,9 +121,7 @@ export interface FileSystem {
 	loadState: (path: string) => Promise<string | undefined>;
 }
 
-export type FileSystemFactory = (rootDir?: string) => FileSystem;
-
-export const createFileSystem: FileSystemFactory = (rootDir = '') => {
+export const createFileSystem = (rootDir: string = ''): FileSystem => {
 	const getFullPath = (path: string) => join(rootDir, path);
 
 	async function getDirData(path: string) {
@@ -213,13 +215,13 @@ export interface Fetcher {
 	}): Promise<FetcherResult>;
 }
 
-export type FetcherFactory = () => {
-	init: (options: { lokiUrl: string; getAdditionalHeaders?: () => Headers }) => Fetcher;
+export type FetcherFactory = {
+	create: (options: { lokiUrl: string; getAdditionalHeaders?: () => Headers }) => Fetcher;
 };
 
-export const createFetcher: FetcherFactory = () => {
+export const createFetcherFactory = (): FetcherFactory => {
 	return {
-		init({ lokiUrl, getAdditionalHeaders }) {
+		create({ lokiUrl, getAdditionalHeaders }) {
 			const lokiClient = createLokiClient(lokiUrl);
 
 			return async ({ query, limit, from, to, abort }) => {

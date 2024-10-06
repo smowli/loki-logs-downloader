@@ -1,26 +1,30 @@
-import { Config, main } from './main';
+import { Config, main, readConfig } from './main';
 import {
-	createFetcher,
+	createFetcherFactory,
 	createFileSystem,
 	createLogger,
-	createStateStore,
-	FileSystemFactory,
-	LoggerFactory,
+	createStateStoreFactory,
+	FileSystem,
+	Logger,
 } from './services';
 
-export { createFileSystem as fileSystemFactory, createLogger as loggerFactory } from './services';
+export { createFileSystem, createLogger } from './services';
 
 export const download = async (options: {
-	loggerFactory?: LoggerFactory;
-	fileSystemFactory?: FileSystemFactory;
+	logger?: Logger;
+	fileSystem?: FileSystem;
 	abortController?: AbortController;
 	config: Partial<Config>;
-}) =>
+}) => {
+	const fileSystem = options.fileSystem || createFileSystem();
+	const config = await readConfig(options.config, fileSystem);
+	const logger = options.logger || createLogger(undefined, config.prettyLogs);
+
 	await main({
-		loggerFactory: options.loggerFactory || createLogger,
-		stateStoreFactory: createStateStore,
-		fileSystemFactory: options.fileSystemFactory || createFileSystem,
-		fetcherFactory: createFetcher,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		config: options.config as any, // no worries, these are parsed and validated further
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fetcherFactory: createFetcherFactory(),
+		logger,
+		fileSystem,
+		config: options.config,
 	});
+};
