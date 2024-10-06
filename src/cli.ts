@@ -46,7 +46,6 @@ program
 		const config = await readConfig(params, fileSystem);
 		const logger = createLogger(undefined, config.prettyLogs);
 
-		console.log(params);
 		await main({
 			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 			fetcherFactory: createFetcherFactory(),
