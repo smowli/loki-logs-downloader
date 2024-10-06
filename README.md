@@ -43,7 +43,7 @@ On a more serious note, though 🗿, this tool is optimized to download all or p
 
 It also comes in both **CLI and SDK flavors**. You can run it as-is, but advanced use cases are also possible. For example, you can plug in your custom file system interface and implement things like:
 
-- Backing up logs to remote file storage, like S3
+- Backing up logs to a different storage system, like S3
 - Migrating logs to another log management system
 
 ## 🏃 Getting Started
@@ -125,4 +125,4 @@ If something is missing or not working as expected, feel free to open an issue�
 
    1. Run `cp ./config.example.json ./config.json`, which has the `promptToStart` option (it will prompt you for keyboard confirmation before anything happens).
    2. Here in the `config.json` set `lokiUrl` to the running server.
-   3. Run `npm run exec:dev`
+   3. Run `npm run exec:dev` which consumes the config.json or `npm run exec:dev-cli` which consumes the cli params

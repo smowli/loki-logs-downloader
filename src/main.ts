@@ -17,80 +17,77 @@ export const configSchema = z.object({
 		.min(1)
 		.optional()
 		.describe(
-			'Path to the JSON configuration file. If provided, all listed options will be read from this file instead.'
+			'Path to the JSON configuration file. If provided, all listed options will be read from this file instead'
 		),
 	from: dateString
 		.optional()
 		.describe(
-			'Represents the starting timestamp from which to query the logs. Defaults to (now OR "to" field) - 1 hour.'
+			'Represents the starting timestamp from which to query the logs. Defaults to (now OR "to" field) - 1 hour'
 		),
 	to: dateString
 		.optional()
 		.describe(
-			'Represents the ending timestamp until which the logs will be queried. Defaults to now.'
+			'Represents the ending timestamp until which the logs will be queried. Defaults to now'
 		),
 	clearOutputDir: z
 		.boolean()
 		.default(false)
-		.describe('If true, clears the specified output directory without prompting.'),
+		.describe('If true, clears the specified output directory without prompting'),
 	outputFolder: z
 		.string()
 		.min(1)
 		.default(FOLDERS.defaultOutputDir)
-		.describe('Path to a folder that will contain subfolders for separate query downloads.'),
+		.describe('Path to a folder that will contain subfolders for separate query downloads'),
 	outputName: z
 		.string()
 		.min(1)
 		.default(FOLDERS.defaultDownloadsDir)
-		.describe('Name of the folder that will contain the downloaded files.'),
+		.describe('Name of the folder that will contain the downloaded files'),
 	query: z
 		.string({ required_error: 'query param is required' })
 		.min(1)
 		.describe('A Loki query written in standard format.'),
-	lokiUrl: z.string().min(1).describe('Base URL of Loki API instance.'),
+	lokiUrl: z.string().min(1).describe('Base URL of Loki API instance'),
 	coolDown: z
 		.number()
 		.nullable()
 		.default(5_000)
-		.describe('Time to wait between fetching the next batch of records from the Loki API.'),
+		.describe('Time to wait between fetching the next batch of records from the Loki API'),
 	totalRecordsLimit: z
 		.number()
 		.min(1)
 		.optional()
-		.describe('Limit on the total number of records to download.'),
+		.describe('Limit on the total number of records to download'),
 	fileRecordsLimit: z
 		.number()
 		.min(1)
 		.optional()
-		.describe('Limit on the number of records outputted to each file.'),
+		.describe('Limit on the number of records outputted to each file'),
 	batchRecordsLimit: z
 		.number()
 		.min(1)
-		.default(2000)
-		.describe('Limit on the number of records fetched from the Loki API in a single request.'),
+		.default(2_000)
+		.describe('Limit on the number of records fetched from the Loki API in a single request'),
 	promptToStart: z
 		.boolean()
 		.default(true)
-		.describe('Ask for confirmation before the download starts.'),
+		.describe('Ask for confirmation before the download starts'),
 	orgId: z
 		.string()
 		.min(1)
 		.optional()
-		.describe('Adds X-Scope-OrgID header to API requests for representing tenant ID.'),
+		.describe('Adds X-Scope-OrgID header to API requests for representing tenant ID'),
 	headers: z
 		.array(z.string())
 		.optional()
 		.describe(
-			'Additional request headers that will be present in every Loki API request. Can be used to provide authorization header.'
+			'Additional request headers that will be present in every Loki API request. Can be used to provide authorization header'
 		),
 	queryTags: z
 		.array(z.string())
 		.optional()
-		.describe('Adds X-Query-Tags header to API requests for tracking the query.'),
-	prettyLogs: z
-		.boolean()
-		.default(true)
-		.describe('Use to enable/disable progress logs with emojis.'),
+		.describe('Adds X-Query-Tags header to API requests for tracking the query'),
+	prettyLogs: z.boolean().default(true).describe('Use to enable/disable progress logs with emojis'),
 });
 
 export type Config = z.infer<typeof configSchema>;
@@ -163,6 +160,7 @@ export async function main({
 		} = await readConfig(config, fs);
 
 		// ### remap variables
+
 		const requestHeaders = headers?.map(header => header.split('='));
 
 		const totalRecordsLimit = limit || Infinity;
@@ -171,7 +169,7 @@ export async function main({
 		const toDate = to || new Date();
 		const fromDate = new Date(from?.getTime() || (to?.getTime() || Date.now()) - hoursToMs(1));
 
-		// ### start script
+		// ### prompt before starting the script
 
 		if (promptToStart) {
 			const startDownload = await prompts({
@@ -333,6 +331,7 @@ export async function main({
 			}
 
 			// ### save files, but only IF NOT ABORTED!
+
 			for (const { filename, usedRecords } of files) {
 				logger.info('🗃️', `saving ${usedRecords.length} records to ${filename}`);
 

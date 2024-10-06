@@ -1,9 +1,3 @@
-/*
-DOCS REFERENCE
-- https://grafana.com/docs/loki/latest/reference/loki-http-api/#query-logs-within-a-range-of-time
-- https://grafana.com/docs/loki/latest/reference/loki-http-api/#statistics
-*/
-
 import { z } from 'zod';
 import { ABORT_SIGNAL } from './constants';
 import { BaseError, UnrecoverableError } from './error';
@@ -22,6 +16,7 @@ export class MaxEntriesLimitPerQueryExceeded extends UnrecoverableLokiApiError {
 
 const lokiStatusSchema = z.union([z.literal('success'), z.literal('error')]);
 
+/** https://grafana.com/docs/loki/latest/reference/loki-http-api/#statistics */
 const lokiStatsSchema = z.object({}).passthrough();
 
 const lokiApiResponseSchema = z.union([
@@ -58,6 +53,7 @@ const timestampUrlValue = (value: Date | bigint | number) =>
 
 export const createLokiClient = (lokiUrl: string) => {
 	return {
+		/** https://grafana.com/docs/loki/latest/reference/loki-http-api/#query-logs-within-a-range-of-time */
 		query_range: async ({
 			query,
 			limit,
@@ -116,6 +112,7 @@ export const createLokiClient = (lokiUrl: string) => {
 
 			return !responseText.includes('Ingester not ready');
 		},
+		/** https://grafana.com/docs/loki/latest/reference/loki-http-api/#ingest-logs */
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);
 

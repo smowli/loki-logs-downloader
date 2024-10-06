@@ -25,6 +25,6 @@ export const download = async (options: {
 		fetcherFactory: createFetcherFactory(),
 		logger,
 		fileSystem,
-		config: options.config,
+		config,
 	});
 };
