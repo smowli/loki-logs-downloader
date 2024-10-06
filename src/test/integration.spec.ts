@@ -4,16 +4,16 @@ import { glob } from 'glob';
 import { EOL } from 'os';
 import { join } from 'path';
 import { beforeAll, expect, it } from 'vitest';
-import { ABORT_SIGNAL, DEFAULT_LOKI_URL, FOLDERS } from './constants';
-import { createLokiClient } from './loki';
-import { main } from './main';
+import { ABORT_SIGNAL, DEFAULT_LOKI_URL, FOLDERS } from '../constants';
+import { createLokiClient } from '../loki';
+import { main } from '../main';
 import {
 	createFetcherFactory,
 	createFileSystem,
 	createLogger,
 	createStateStoreFactory,
-} from './services';
-import { getNanoseconds, retry, wait } from './util';
+} from '../services';
+import { getNanoseconds, retry, wait } from '../util';
 
 const lokiUrl = DEFAULT_LOKI_URL;
 const LABELS = { app: 'test' };

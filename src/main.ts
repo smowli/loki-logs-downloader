@@ -113,6 +113,8 @@ export function catchZodError(error: unknown, logger: Logger) {
 	if (error instanceof ZodError) {
 		const readableError = fromError(error);
 
+		// TODO: This also catches loki api parsing errors and similar stuff
+
 		logger.error(
 			'🛑',
 			'Some provided options are invalid:',

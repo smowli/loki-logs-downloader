@@ -17,8 +17,8 @@ export const download = async (options: {
 	config: Partial<Config>;
 }) => {
 	const baseConfig = zodConfigSchema.pick({ prettyLogs: true }).parse(options.config);
-	const logger = createLogger(undefined, baseConfig.prettyLogs);
-	const fileSystem = createFileSystem();
+	const logger = options.logger || createLogger(undefined, baseConfig.prettyLogs);
+	const fileSystem = options.fileSystem || createFileSystem();
 
 	try {
 		await main({
