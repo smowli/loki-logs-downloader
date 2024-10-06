@@ -68,6 +68,7 @@
 		"build": "tsup --entry.cli ./src/cli.ts --entry.sdk ./src/sdk.ts --no-splitting --format cjs,esm --dts --clean --target=node20",
 		"exec": "npm run build && node ./dist/cli.js -c ./config.json",
 		"exec:dev": "tsx ./src/cli.ts -c ./config.json",
+		"exec:dev-cli": "tsx ./src/cli.ts",
 		"test": "vitest run --passWithNoTests --exclude=src/integration.spec.ts",
 		"test:all": "vitest run",
 		"test:dev": "vitest --passWithNoTests --exclude=src/integration.spec.ts",

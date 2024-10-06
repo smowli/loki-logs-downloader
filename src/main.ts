@@ -90,7 +90,7 @@ export const configSchema = z.object({
 	prettyLogs: z
 		.boolean()
 		.default(true)
-		.describe('Set to false to print progress logs without emojis.'),
+		.describe('Use to enable/disable progress logs with emojis.'),
 });
 
 export type Config = z.infer<typeof configSchema>;

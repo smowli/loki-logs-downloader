@@ -39,12 +39,14 @@ program
 	.option('--orgId <name>', configSchema.orgId.description)
 	.option('--headers [headers...]', configSchema.headers.description)
 	.option('--queryTags [tags...]', configSchema.queryTags.description)
+	.option('--no-prettyLogs', configSchema.prettyLogs.description)
 	// ==================================================
 	.action(async (params: Partial<Config>) => {
 		const fileSystem = createFileSystem();
 		const config = await readConfig(params, fileSystem);
 		const logger = createLogger(undefined, config.prettyLogs);
 
+		console.log(params);
 		await main({
 			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 			fetcherFactory: createFetcherFactory(),

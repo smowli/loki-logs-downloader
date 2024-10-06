@@ -91,7 +91,7 @@
 		"prettyLogs": {
 			"type": "boolean",
 			"default": true,
-			"description": "Set to false to print progress logs without emojis."
+			"description": "Use to enable/disable progress logs with emojis."
 		}
 	},
 	"required": ["query", "lokiUrl"],
