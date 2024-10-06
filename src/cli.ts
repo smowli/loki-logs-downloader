@@ -37,8 +37,20 @@ program
 		'-c --configFile <path_to_config>',
 		wrap(schema.configFile.description, `Example: -c ./config.json`)
 	)
-	.option('-o --outputFolder <folder>', wrap(schema.outputFolder.description))
-	.option('-n --outputName <name>', wrap(schema.outputName.description))
+	.option(
+		'-o --outputFolder <folder>',
+		wrap(
+			schema.outputFolder.description,
+			`Final file structure: <outputFolder>/<outputName>/logFile.txt`
+		)
+	)
+	.option(
+		'-n --outputName <name>',
+		wrap(
+			schema.outputName.description,
+			`Final file structure: <outputFolder>/<outputName>/logFile.txt`
+		)
+	)
 	.option('-tll --totalRecordsLimit <number>', wrap(schema.totalRecordsLimit.description), toNumber)
 	.option('-fll --fileRecordsLimit <number>', wrap(schema.fileRecordsLimit.description), toNumber)
 	.option('-bll --batchRecordsLimit <number>', wrap(schema.batchRecordsLimit.description), toNumber)

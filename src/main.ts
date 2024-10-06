@@ -32,7 +32,7 @@ export const zodConfigSchema = z.object({
 	clearOutputDir: z
 		.boolean()
 		.default(false)
-		.describe('If true, clears the specified output directory without prompting'),
+		.describe('If true, empties the specified output directory without prompting for confirmation'),
 	outputFolder: z
 		.string()
 		.min(1)
