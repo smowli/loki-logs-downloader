@@ -119,7 +119,7 @@ If something is missing or not working as expected, feel free to open an issue�
 2. Run `npm install`
 3. If you want to do test-driven development, run `npm run test:dev` to start tests in watch mode or `npm run test` for a single test run. The majority of tests run against a mocked version of the Loki API.
 4. If you want to develop against the real Loki API, you will need to provide your own `lokiUrl` or start Loki locally on `port 3100` with this [docker compose file](./docker-compose.yaml) by running `docker compose up -d`
-5. If you want to test against the real Loki API, there is an [integration test for that](./src/integration.spec.ts) which you can run with `npm run test:integration`
+5. If you want to test against the real Loki API, there is an [integration test for that](./src/test/integration.spec.ts) which you can run with `npm run test:integration`
    - **⚠️ Watch out: the integration test will try to push plenty of logs to the Loki API on localhost:3100 (DEFAULT_LOKI_URL) ⚠️**
 6. To start the dev environment:
 
