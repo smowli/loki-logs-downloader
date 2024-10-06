@@ -1,3 +1,14 @@
+## [3.0.0](https://github.com/vosmol/loki-logs-downloader/compare/2.2.4...3.0.0) (2024-10-06)
+
+### ⚠ BREAKING CHANGES
+
+- add pretty logs & refactor range date
+
+### Features 🚀
+
+- add pretty logs & refactor range date ([85f91d2](https://github.com/vosmol/loki-logs-downloader/commit/85f91d250131c7bb5adf82b0d2645c1caf882adf))
+- add prettyLogs option ([20ad80f](https://github.com/vosmol/loki-logs-downloader/commit/20ad80f164a0fce5d39a6257b10f37d0480ed11f))
+
 ## [2.2.4](https://github.com/vosmol/loki-logs-downloader/compare/2.2.3...2.2.4) (2024-10-04)
 
 ## [2.2.3](https://github.com/vosmol/loki-logs-downloader/compare/2.2.2...2.2.3) (2024-10-04)
