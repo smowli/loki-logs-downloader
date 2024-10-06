@@ -84,7 +84,7 @@ const logLevelMap: Record<LogLevel, number> = {
 	error: 0,
 };
 
-export const createLogger = (level: LogLevel = 'error', pretty: boolean = true): Logger => {
+export const createLogger = (level: LogLevel = 'info', pretty: boolean = true): Logger => {
 	const isLowerLogLevel = (level: LogLevel, compareTo: LogLevel) =>
 		logLevelMap[level] < logLevelMap[compareTo];
 
