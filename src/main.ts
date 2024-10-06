@@ -1,7 +1,7 @@
 import { join } from 'path';
-import { exit } from 'process';
 import prompts from 'prompts';
-import { z } from 'zod';
+import { z, ZodError } from 'zod';
+import { fromError } from 'zod-validation-error';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { FetcherFactory, FileSystem, Logger, StateStoreFactory } from './services';
 import { getNanoseconds, hoursToMs, wait } from './util';
@@ -11,7 +11,7 @@ const dateString = z.preprocess((v: unknown) => {
 	return v;
 }, z.date());
 
-export const configSchema = z.object({
+export const zodConfigSchema = z.object({
 	configFile: z
 		.string()
 		.min(1)
@@ -43,10 +43,7 @@ export const configSchema = z.object({
 		.min(1)
 		.default(FOLDERS.defaultDownloadsDir)
 		.describe('Name of the folder that will contain the downloaded files'),
-	query: z
-		.string({ required_error: 'query param is required' })
-		.min(1)
-		.describe('A Loki query written in standard format.'),
+	query: z.string().min(1).describe('A Loki query written in standard format.'),
 	lokiUrl: z.string().min(1).describe('Base URL of Loki API instance'),
 	coolDown: z
 		.number()
@@ -90,7 +87,7 @@ export const configSchema = z.object({
 	prettyLogs: z.boolean().default(true).describe('Use to enable/disable progress logs with emojis'),
 });
 
-export type Config = z.infer<typeof configSchema>;
+export type Config = z.infer<typeof zodConfigSchema>;
 
 export interface MainOptions {
 	logger: Logger;
@@ -103,13 +100,27 @@ export interface MainOptions {
 
 /** use json config file instead cmd params if configured */
 export async function readConfig(config: Partial<Config>, fs: FileSystem): Promise<Config> {
-	const { configFile } = configSchema
+	const { configFile } = zodConfigSchema
 		.pick({ configFile: true })
 		.parse({ configFile: config?.configFile });
 
 	const fileConfig = configFile && JSON.parse(await fs.readConfig(configFile));
 
-	return configSchema.parse(fileConfig || config);
+	return zodConfigSchema.parse(fileConfig || config);
+}
+
+export function catchZodError(error: unknown, logger: Logger) {
+	if (error instanceof ZodError) {
+		const readableError = fromError(error);
+
+		logger.error(
+			'🛑',
+			'Some provided options are invalid:',
+			readableError.toString().replace('Validation error:', '').trim()
+		);
+
+		process.exit(1);
+	}
 }
 
 export async function main({
@@ -237,7 +248,7 @@ export async function main({
 						'🚧',
 						`can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again`
 					);
-					exit();
+					process.exit(1);
 				}
 			}
 
@@ -365,6 +376,9 @@ export async function main({
 		}
 
 		// TODO: Better error handling
+
+		catchZodError(error, logger);
+
 		throw error;
 	} finally {
 		cleanUpListeners();

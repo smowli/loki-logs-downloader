@@ -1,4 +1,4 @@
-import { Config, main, readConfig } from './main';
+import { catchZodError, Config, main, zodConfigSchema } from './main';
 import {
 	createFetcherFactory,
 	createFileSystem,
@@ -16,15 +16,23 @@ export const download = async (options: {
 	abortController?: AbortController;
 	config: Partial<Config>;
 }) => {
-	const fileSystem = options.fileSystem || createFileSystem();
-	const config = await readConfig(options.config, fileSystem);
-	const logger = options.logger || createLogger(undefined, config.prettyLogs);
+	const baseConfig = zodConfigSchema.pick({ prettyLogs: true }).parse(options.config);
+	const logger = createLogger(undefined, baseConfig.prettyLogs);
+	const fileSystem = createFileSystem();
 
-	await main({
-		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
-		fetcherFactory: createFetcherFactory(),
-		logger,
-		fileSystem,
-		config,
-	});
+	try {
+		await main({
+			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+			fetcherFactory: createFetcherFactory(),
+			logger,
+			fileSystem,
+			config: options.config,
+		});
+	} catch (error) {
+		catchZodError(error, logger);
+
+		// TODO: Better error handling
+
+		throw error;
+	}
 };
