@@ -8,6 +8,6 @@
 		"pull": "npm install loki-logs-downloader@latest"
 	},
 	"dependencies": {
-		"loki-logs-downloader": "^3.0.5"
+		"loki-logs-downloader": "^3.0.7"
 	}
 }
