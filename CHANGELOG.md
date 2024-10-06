@@ -1,3 +1,10 @@
+## [3.0.3](https://github.com/vosmol/loki-logs-downloader/compare/3.0.2...3.0.3) (2024-10-06)
+
+### Bug Fixes 🦗
+
+- change default loglevel ([7198a56](https://github.com/vosmol/loki-logs-downloader/commit/7198a56ce7004d8c9841af6c923a5e9c6f692f13))
+- change default loglevel ([504ad6e](https://github.com/vosmol/loki-logs-downloader/commit/504ad6ee51c7be60f8cb92cda55c85c5234778bf))
+
 ## [3.0.2](https://github.com/vosmol/loki-logs-downloader/compare/3.0.1...3.0.2) (2024-10-06)
 
 ## [3.0.1](https://github.com/vosmol/loki-logs-downloader/compare/3.0.0...3.0.1) (2024-10-06)
