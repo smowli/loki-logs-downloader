@@ -3,11 +3,12 @@ import { exit } from 'process';
 import prompts from 'prompts';
 import { z } from 'zod';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
-import { FetcherFactory, FileSystemFactory, LoggerFactory, StateStoreFactory } from './services';
+import { FetcherFactory, FileSystem, Logger, StateStoreFactory } from './services';
 import { getNanoseconds, hoursToMs, wait } from './util';
 
 const dateString = z.preprocess((v: unknown) => {
 	if (typeof v === 'string') return new Date(v);
+	return v;
 }, z.date());
 
 export const configSchema = z.object({
@@ -19,12 +20,12 @@ export const configSchema = z.object({
 			'Path to the JSON configuration file. If provided, all listed options will be read from this file instead.'
 		),
 	from: dateString
-		.default(new Date(Date.now() - hoursToMs(1)).toISOString())
+		.optional()
 		.describe(
-			'Represents the starting timestamp from which to query the logs. Defaults to now - 1 hour.'
+			'Represents the starting timestamp from which to query the logs. Defaults to (now OR "to" field) - 1 hour.'
 		),
 	to: dateString
-		.default(new Date().toISOString())
+		.optional()
 		.describe(
 			'Represents the ending timestamp until which the logs will be queried. Defaults to now.'
 		),
@@ -86,37 +87,42 @@ export const configSchema = z.object({
 		.array(z.string())
 		.optional()
 		.describe('Adds X-Query-Tags header to API requests for tracking the query.'),
+	prettyLogs: z
+		.boolean()
+		.default(true)
+		.describe('Add make output fancier when printing progress logs.'),
 });
 
-export type Config = Omit<z.infer<typeof configSchema>, 'from' | 'to'> & {
-	from: string;
-	to: string;
-};
+export type Config = z.infer<typeof configSchema>;
 
 export interface MainOptions {
-	loggerFactory: LoggerFactory;
+	logger: Logger;
+	fileSystem: FileSystem;
 	stateStoreFactory: StateStoreFactory;
-	fileSystemFactory: FileSystemFactory;
 	fetcherFactory: FetcherFactory;
 	config: Partial<Config>;
 	abortController?: AbortController;
 }
 
+/** use json config file instead cmd params if configured */
+export async function readConfig(config: Partial<Config>, fs: FileSystem): Promise<Config> {
+	const { configFile } = configSchema
+		.pick({ configFile: true })
+		.parse({ configFile: config?.configFile });
+
+	const fileConfig = configFile && JSON.parse(await fs.readConfig(configFile));
+
+	return configSchema.parse(fileConfig || config);
+}
+
 export async function main({
-	loggerFactory,
+	logger,
+	fileSystem: fs,
 	stateStoreFactory,
-	fileSystemFactory,
 	fetcherFactory,
 	config,
 	abortController: ownAbortController,
 }: MainOptions) {
-	// ### dependencies
-
-	const logger = loggerFactory();
-	const fs = fileSystemFactory();
-	const stateStoreInstance = stateStoreFactory({ fs, logger });
-	const fetcherInstance = fetcherFactory();
-
 	// ### setup graceful shutdown
 
 	const abortController = ownAbortController || new AbortController();
@@ -138,19 +144,9 @@ export async function main({
 	};
 
 	try {
-		// ### use json config file instead cmd params if configured
-
-		const { configFile } = configSchema
-			.pick({ configFile: true })
-			.parse({ configFile: config.configFile });
-
-		const fileConfig = configFile && JSON.parse(await fs.readConfig(configFile));
-
-		// ### validate config
-
 		const {
-			from: fromDate,
-			to: toDate,
+			from,
+			to,
 			query,
 			lokiUrl,
 			fileRecordsLimit,
@@ -164,7 +160,18 @@ export async function main({
 			orgId,
 			queryTags,
 			headers,
-		} = configSchema.parse(fileConfig || config);
+		} = await readConfig(config, fs);
+
+		// ### remap variables
+		const requestHeaders = headers?.map(header => header.split('='));
+
+		const totalRecordsLimit = limit || Infinity;
+		const recordsLimitPerFile = fileRecordsLimit || Infinity;
+
+		const toDate = to || new Date();
+		const fromDate = new Date(from?.getTime() || (to?.getTime() || Date.now()) - hoursToMs(1));
+
+		// ### start script
 
 		if (promptToStart) {
 			const startDownload = await prompts({
@@ -175,12 +182,6 @@ export async function main({
 
 			if (!startDownload.start) process.exit(1);
 		}
-
-		// ### remap variables
-		const requestHeaders = headers?.map(header => header.split('='));
-
-		const totalRecordsLimit = limit || Infinity;
-		const recordsLimitPerFile = fileRecordsLimit || Infinity;
 
 		// ### loop variables
 
@@ -193,7 +194,7 @@ export async function main({
 
 		// ### state recovery
 
-		const stateStore = stateStoreInstance.init(
+		const stateStore = stateStoreFactory.create(
 			fromDate.toISOString(),
 			toDate.toISOString(),
 			query,
@@ -249,7 +250,7 @@ export async function main({
 
 		// ### main processing loop
 
-		const fetchRecords = fetcherInstance.init({
+		const fetchRecords = fetcherFactory.create({
 			lokiUrl,
 			getAdditionalHeaders: () => {
 				const customHeaders = requestHeaders && Object.fromEntries(requestHeaders);

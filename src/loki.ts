@@ -5,8 +5,8 @@ DOCS REFERENCE
 */
 
 import { z } from 'zod';
-import { BaseError, UnrecoverableError } from './error';
 import { ABORT_SIGNAL } from './constants';
+import { BaseError, UnrecoverableError } from './error';
 
 export const LOKI_API_ERRORS = {
 	queryMaxLimit: 'max entries limit per query exceeded',
@@ -107,6 +107,14 @@ export const createLokiClient = (lokiUrl: string) => {
 
 				throw error;
 			}
+		},
+		isReady: async () => {
+			const url = new URL(`${lokiUrl}/ready`);
+
+			const response = await fetch(url);
+			const responseText = await response.text();
+
+			return !responseText.includes('Ingester not ready');
 		},
 		push: async (data: unknown) => {
 			const url = new URL(`${lokiUrl}/loki/api/v1/push`);

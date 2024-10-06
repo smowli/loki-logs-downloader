@@ -9,9 +9,10 @@ import {
 	Fetcher,
 	FetcherResult,
 	LokiRecord,
+	State,
 	createFileSystem,
 	createLogger,
-	createStateStore,
+	createStateStoreFactory,
 } from './services';
 import { getNanoseconds, nanosecondsToMilliseconds, retry } from './util';
 
@@ -42,14 +43,17 @@ it(`downloads logs & outputs files with correct data`, async () => {
 
 	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'single-run-test');
 
-	const testFetcher = testFetcherFactory({ totalRecords: 140 });
+	const testFetcher = createTestFetcherFactory({ totalRecords: 140 });
 	const fromDate = new Date();
 
+	const logger = createLogger('error');
+	const fileSystem = createFileSystem(OUTPUT_DIR);
+
 	await main({
-		fetcherFactory: () => testFetcher,
-		fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
-		stateStoreFactory: createStateStore,
-		loggerFactory: () => createLogger('error'),
+		fetcherFactory: testFetcher,
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fileSystem,
+		logger,
 		config: {
 			outputName: OUTPUT_NAME,
 			query: '{app="test"}',
@@ -58,7 +62,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 			batchRecordsLimit: 100,
 			clearOutputDir: true,
 			fileRecordsLimit: 100,
-			from: fromDate.toISOString(),
+			from: fromDate,
 			promptToStart: false,
 		},
 	});
@@ -130,7 +134,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 it(`downloads logs & recovers state`, async () => {
 	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'retry-run-test');
 
-	const testFetcher = testFetcherFactory({
+	const testFetcher = createTestFetcherFactory({
 		totalRecords: 590,
 		onCalled({ called }) {
 			if (called % 2 === 0) {
@@ -139,12 +143,17 @@ it(`downloads logs & recovers state`, async () => {
 		},
 	});
 
+	const logger = createLogger('error');
+	const fileSystem = createFileSystem(OUTPUT_DIR);
+
+	const to = new Date();
+
 	await retry(5, () =>
 		main({
-			fetcherFactory: () => testFetcher,
-			fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
-			stateStoreFactory: createStateStore,
-			loggerFactory: () => createLogger('error'),
+			fetcherFactory: testFetcher,
+			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+			fileSystem,
+			logger,
 			config: {
 				outputName: OUTPUT_NAME,
 				query: '{app="test"}',
@@ -154,6 +163,7 @@ it(`downloads logs & recovers state`, async () => {
 				clearOutputDir: true,
 				promptToStart: false,
 				fileRecordsLimit: 300,
+				to,
 			},
 		})
 	);
@@ -212,7 +222,7 @@ it('aborts properly on abort signal', async () => {
 
 	const abortController = new AbortController();
 
-	const testFetcher = testFetcherFactory({
+	const testFetcher = createTestFetcherFactory({
 		totalRecords: 5000,
 		onCalled({ called }) {
 			// abort after first call
@@ -222,18 +232,21 @@ it('aborts properly on abort signal', async () => {
 		},
 	});
 
+	const fileSystem = {
+		...createFileSystem(OUTPUT_DIR),
+		async saveState(path: string, state: State) {
+			resultState = state;
+		},
+	};
+	const logger = createLogger('error');
+
 	let resultState = {};
 
 	await main({
-		fetcherFactory: () => testFetcher,
-		fileSystemFactory: () => ({
-			...createFileSystem(OUTPUT_DIR),
-			async saveState(path, state) {
-				resultState = state;
-			},
-		}),
-		stateStoreFactory: createStateStore,
-		loggerFactory: () => createLogger('error'),
+		fetcherFactory: testFetcher,
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fileSystem,
+		logger,
 		abortController,
 		config: {
 			outputName: OUTPUT_NAME,
@@ -263,6 +276,8 @@ it('uses config file if option is set', async () => {
 
 	const configFilePath = '/app/usr/config.json';
 
+	const logger = createLogger('error');
+
 	const testFs = createFileSystem(OUTPUT_DIR);
 	const readConfigMock = vitest.fn().mockImplementation(() => {
 		return JSON.stringify({
@@ -272,14 +287,16 @@ it('uses config file if option is set', async () => {
 		});
 	});
 
+	const fileSystem = {
+		...testFs,
+		readConfig: readConfigMock,
+	};
+
 	await main({
-		fetcherFactory: () => testFetcherFactory({ totalRecords: 0 }),
-		fileSystemFactory: () => ({
-			...testFs,
-			readConfig: readConfigMock,
-		}),
-		stateStoreFactory: createStateStore,
-		loggerFactory: () => createLogger('error'),
+		fetcherFactory: createTestFetcherFactory({ totalRecords: 0 }),
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fileSystem,
+		logger,
 		config: {
 			configFile: configFilePath,
 		},
@@ -305,13 +322,16 @@ describe('different configs', () => {
 	] as Array<[Partial<Config>, { files: number; fetcherCalls: 1 }]>)(
 		`%s configs behave as expected`,
 		async (configs, result) => {
-			const testFetcher = testFetcherFactory({ totalRecords: 971 });
+			const testFetcher = createTestFetcherFactory({ totalRecords: 971 });
+
+			const logger = createLogger('error');
+			const fileSystem = createFileSystem(OUTPUT_DIR);
 
 			await main({
-				fetcherFactory: () => testFetcher,
-				fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
-				stateStoreFactory: createStateStore,
-				loggerFactory: () => createLogger('error'),
+				fetcherFactory: testFetcher,
+				stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+				fileSystem,
+				logger,
 				config: {
 					outputName: OUTPUT_NAME,
 					query: '{app="test"}',
@@ -388,12 +408,15 @@ describe('state files', () => {
 		async (...testConfigs) => {
 			const [, ...configs] = testConfigs;
 
+			const logger = createLogger('error');
+			const fileSystem = createFileSystem(OUTPUT_DIR);
+
 			for (const option of configs) {
 				await main({
-					fetcherFactory: () => testFetcherFactory({ totalRecords: 0 }),
-					fileSystemFactory: () => createFileSystem(OUTPUT_DIR),
-					stateStoreFactory: createStateStore,
-					loggerFactory: () => createLogger('error'),
+					fetcherFactory: createTestFetcherFactory({ totalRecords: 0 }),
+					stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+					fileSystem,
+					logger,
 					config: {
 						outputName: OUTPUT_NAME,
 						query: '{app="test"}',
@@ -414,12 +437,12 @@ describe('state files', () => {
 	);
 });
 
-function testFetcherFactory(options: {
+function createTestFetcherFactory(options: {
 	totalRecords: number;
 	customData?: (state: { called: number }) => FetcherResult;
 	onCalled?: (state: { called: number }) => void;
 }): {
-	init: (options: { lokiUrl: string }) => Fetcher;
+	create: (options: { lokiUrl: string }) => Fetcher;
 	testData: () => {
 		lastTimestamp: bigint | undefined;
 		batchTimestamps: { from: Date; to: Date }[];
@@ -439,7 +462,7 @@ function testFetcherFactory(options: {
 			batchTimestamps,
 			aborted,
 		}),
-		init() {
+		create() {
 			return async ({ from, limit, abort }) => {
 				called++;
 				options?.onCalled?.({ called });
