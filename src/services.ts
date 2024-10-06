@@ -103,7 +103,7 @@ export const createLogger = (level: LogLevel = 'info', pretty: boolean = true): 
 			if (isLowerLogLevel(level, 'info')) return;
 
 			if (pretty) {
-				console.error('[INFO]', ...[emoji, ...args]);
+				console.log('[INFO]', ...[emoji, ...args]);
 				return;
 			}
 
