@@ -51,6 +51,7 @@
 			".github/",
 			".husky/",
 			"dev/",
+			"docs/",
 			"src/",
 			".editorconfig",
 			".nvmrc",
