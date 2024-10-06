@@ -1,3 +1,5 @@
+## [3.0.6](https://github.com/vosmol/loki-logs-downloader/compare/3.0.5...3.0.6) (2024-10-06)
+
 ## [3.0.5](https://github.com/vosmol/loki-logs-downloader/compare/3.0.4...3.0.5) (2024-10-06)
 
 ## [3.0.4](https://github.com/vosmol/loki-logs-downloader/compare/3.0.3...3.0.4) (2024-10-06)
