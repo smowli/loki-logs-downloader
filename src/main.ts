@@ -95,7 +95,7 @@ export interface MainOptions {
 	stateStoreFactory: StateStoreFactory;
 	fetcherFactory: FetcherFactory;
 	config: Partial<Config>;
-	abortController?: AbortController;
+	abortController?: AbortController | undefined;
 }
 
 /** use json config file instead cmd params if configured */

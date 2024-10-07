@@ -26,6 +26,7 @@ export const download = async (options: {
 			fetcherFactory: createFetcherFactory(),
 			logger,
 			fileSystem,
+			abortController: options.abortController,
 			config: options.config,
 		});
 	} catch (error) {
