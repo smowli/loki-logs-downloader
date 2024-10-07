@@ -7,6 +7,8 @@ import { getNanoseconds } from '../util';
 it('it calls custom fileSystem & logger', async () => {
 	const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
+	const abortController = new AbortController();
+
 	const logger = {
 		info: vi.fn(),
 		error: vi.fn(),
@@ -20,6 +22,10 @@ it('it calls custom fileSystem & logger', async () => {
 				lokiUrl: DEFAULT_LOKI_URL,
 				promptToStart: false,
 				clearOutputDir: true,
+				// fetch super slow, so first fetch is triggered, but then we have time to abort
+				fileRecordsLimit: 1,
+				batchRecordsLimit: 1,
+				coolDown: 2_000,
 			});
 		}) as FileSystem['readConfig']),
 
@@ -45,32 +51,52 @@ it('it calls custom fileSystem & logger', async () => {
 		}) as FileSystem['saveState']),
 	};
 
-	fetchSpy.mockResolvedValueOnce(
-		new Response(
-			JSON.stringify({
-				status: 'success',
-				data: {
-					resultType: 'streams',
-					result: [
-						{
-							stream: {},
-							values: [[String(getNanoseconds()), 'log line']],
+	fetchSpy.mockImplementation(async (url, init) => {
+		return new Promise((res, rej) => {
+			if (init?.signal) {
+				init.signal.addEventListener('abort', ev => {
+					rej(ev);
+				});
+			}
+
+			res(
+				new Response(
+					JSON.stringify({
+						status: 'success',
+						data: {
+							resultType: 'streams',
+							result: [
+								{
+									stream: {},
+									values: [
+										[String(getNanoseconds()), 'log line 1'],
+										[String(getNanoseconds()), 'log line 2'],
+									],
+								},
+							],
+
+							stats: {},
 						},
-					],
+					})
+				)
+			);
+		});
+	});
 
-					stats: {},
-				},
-			})
-		)
-	);
-
-	await download({
+	const pending = download({
 		logger,
 		fileSystem,
+		abortController,
 		config: {
 			configFile: './config.json',
 		},
 	});
+
+	setTimeout(() => abortController.abort(), 500);
+
+	await pending;
+
+	expect(abortController.signal.aborted).toBe(true);
 
 	expect(logger.info).toBeCalled();
 
@@ -80,4 +106,6 @@ it('it calls custom fileSystem & logger', async () => {
 	expect(fileSystem.loadState).toBeCalled();
 	expect(fileSystem.outputLogs).toBeCalled();
 	expect(fileSystem.saveState).toBeCalled();
+
+	expect(fetchSpy).toBeCalledTimes(1);
 });
