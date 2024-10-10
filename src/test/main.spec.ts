@@ -16,7 +16,7 @@ beforeAll(async () => {
 	await remove(ROOT_OUTPUT_DIR);
 });
 
-it(`downloads logs & outputs files with correct data`, async () => {
+it(`downloads logs with BACKWARD direction & outputs files with correct data`, async () => {
 	/*
 		- TESTED CASE: 
 			- fetch in batch of 100
@@ -34,7 +34,7 @@ it(`downloads logs & outputs files with correct data`, async () => {
 			- fetcher is called 2 times <- 1 full + 1 partial result
 		*/
 
-	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'single-run-test');
+	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'single-run-test-forward');
 
 	const testFetcher = createTestFetcherFactory({ totalRecords: 140 });
 	const fromDate = new Date();
@@ -110,18 +110,105 @@ it(`downloads logs & outputs files with correct data`, async () => {
 	expect(downloadFiles[0].length).toBe(100);
 	expect(downloadFiles[1].length).toBe(40);
 
-	const [firstRecordFile0, lastRecordFile0, firstRecordFile1, lastRecordFile1] = [
+	const [firstFileFirstLine, firstFileLastLine, lastFileFirstLine, lastFileLastLine] = [
 		downloadFiles[0][0],
 		downloadFiles[0].at(-1),
 		downloadFiles[1][0],
 		downloadFiles[1].at(-1),
 	];
 
-	expect(firstRecordFile0.timestamp).toBe(fromDate.toISOString());
-	expect(firstRecordFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].from.toISOString());
-	expect(lastRecordFile0.timestamp).toBe(fetcherTestState.batchTimestamps[0].to.toISOString());
-	expect(firstRecordFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].from.toISOString());
-	expect(lastRecordFile1.timestamp).toBe(fetcherTestState.batchTimestamps[1].to.toISOString());
+	expect(firstFileFirstLine.record).toContain('log line: 1');
+	expect(lastFileLastLine.record).toContain('log line: 140');
+
+	expect(firstFileFirstLine.timestamp).toBe(fromDate.toISOString());
+	expect(firstFileFirstLine.timestamp).toBe(fetcherTestState.batchTimestamps[0].from.toISOString());
+	expect(firstFileLastLine.timestamp).toBe(fetcherTestState.batchTimestamps[0].to.toISOString());
+	expect(lastFileFirstLine.timestamp).toBe(fetcherTestState.batchTimestamps[1].from.toISOString());
+	expect(lastFileLastLine.timestamp).toBe(fetcherTestState.batchTimestamps[1].to.toISOString());
+});
+
+it(`supports FORWARD direction`, async () => {
+	const OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'single-run-test-backward');
+
+	const testFetcher = createTestFetcherFactory({ totalRecords: 140 });
+	const fromDate = new Date();
+
+	const logger = createLogger('error');
+	const fileSystem = createFileSystem(OUTPUT_DIR);
+
+	await main({
+		fetcherFactory: testFetcher,
+		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
+		fileSystem,
+		logger,
+		config: {
+			outputName: OUTPUT_NAME,
+			query: '{app="test"}',
+			lokiUrl: DEFAULT_LOKI_URL,
+			coolDown: null,
+			batchRecordsLimit: 100,
+			clearOutputDir: true,
+			fileRecordsLimit: 100,
+			from: fromDate,
+			promptToStart: false,
+			startFromOldest: true,
+		},
+	});
+
+	const fetcherTestState = testFetcher.testData();
+
+	// ### Check produced files
+
+	const [downloadFilesPaths, stateFilesPath] = await Promise.all([
+		glob(`${join(OUTPUT_DIR, FOLDERS.defaultOutputDir, OUTPUT_NAME, '*.txt')}`),
+		glob(`${join(OUTPUT_DIR, FOLDERS.internal, FOLDERS.state, '*.json')}`),
+	]);
+
+	const sortedDownloadFilesPaths = downloadFilesPaths.sort();
+
+	expect(sortedDownloadFilesPaths.length).toBe(2);
+	expect(sortedDownloadFilesPaths[0]).toMatch(/0.txt$/);
+	expect(sortedDownloadFilesPaths[1]).toMatch(/1.txt$/);
+	expect(stateFilesPath.length).toBe(1);
+
+	// ### Check fetcher state
+
+	expect(fetcherTestState.called).toBe(2);
+
+	// ### Check state file content
+
+	const stateFile = await readFile(stateFilesPath[0]).then(content =>
+		JSON.parse(content.toString())
+	);
+
+	expect(stateFile).toMatchObject({
+		fileNumber: 1,
+		queryRecordsExhausted: true,
+		startFromTimestamp: fetcherTestState.lastTimestamp?.toString(),
+		totalRecords: 140,
+	});
+
+	// ### Check downloaded files content
+
+	const downloadFiles = await Promise.all(
+		sortedDownloadFilesPaths.map(file =>
+			readFile(file).then(content =>
+				content
+					.toString()
+					.split(EOL)
+					.filter(record => record.length > 0)
+					.map(record => JSON.parse(record))
+			)
+		)
+	);
+
+	expect(downloadFiles[0].length).toBe(100);
+	expect(downloadFiles[1].length).toBe(40);
+
+	const [firstFileFirstLine, lastFileLastLine] = [downloadFiles[0][0], downloadFiles[1].at(-1)];
+
+	expect(firstFileFirstLine.record).toContain('log line: 140');
+	expect(lastFileLastLine.record).toContain('log line: 1');
 });
 
 it(`downloads logs & recovers state`, async () => {

@@ -54,6 +54,7 @@ program
 	.option('-tll --totalRecordsLimit <number>', wrap(schema.totalRecordsLimit.description), toNumber)
 	.option('-fll --fileRecordsLimit <number>', wrap(schema.fileRecordsLimit.description), toNumber)
 	.option('-bll --batchRecordsLimit <number>', wrap(schema.batchRecordsLimit.description), toNumber)
+	.option('--startFromOldest', wrap(schema.startFromOldest.description))
 	.option('--coolDown <timeMs>', wrap(schema.coolDown.description), toNumber)
 	.option('--clearOutputDir', wrap(schema.clearOutputDir.description))
 	.option('--orgId <name>', wrap(schema.orgId.description))

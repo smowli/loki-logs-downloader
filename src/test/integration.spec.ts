@@ -5,7 +5,7 @@ import { EOL } from 'os';
 import { join } from 'path';
 import { beforeAll, expect, it } from 'vitest';
 import { ABORT_SIGNAL, DEFAULT_LOKI_URL, FOLDERS } from '../constants';
-import { createLokiClient } from '../loki';
+import { createLokiClient, LokiFetchDirection } from '../loki';
 import { main } from '../main';
 import {
 	createFetcherFactory,
@@ -20,12 +20,16 @@ const LABELS = { app: 'test' };
 const QUERY_LABELS = Object.entries(LABELS).flatMap(([key, value]) => `${key}="${value}"`);
 const TEST_QUERY = `{${QUERY_LABELS}}`;
 const OUTPUT_DIR = join('test-outputs', 'integration-test');
+const FETCH_DIRECTION = LokiFetchDirection.FORWARD;
+const RECORD_COUNT = 8000;
+const FILE_RECORDS_LIMIT = 1234;
+const TOTAL_RECORDS_LIMIT = 6103;
 
 beforeAll(async () => {
 	await remove(OUTPUT_DIR);
 
 	await setupLoki({
-		recordCount: 8000,
+		recordCount: RECORD_COUNT,
 		labels: LABELS,
 		lokiUrl,
 		findQuery: TEST_QUERY,
@@ -33,7 +37,6 @@ beforeAll(async () => {
 }, 60_000);
 
 it('Downloads logs from real loki API', async () => {
-	const totalRecordsLimit = 6103;
 	const logger = createLogger('error');
 	const fileSystem = createFileSystem(OUTPUT_DIR);
 
@@ -47,10 +50,11 @@ it('Downloads logs from real loki API', async () => {
 			lokiUrl: lokiUrl,
 			coolDown: 300,
 			clearOutputDir: true,
-			totalRecordsLimit: totalRecordsLimit,
 			batchRecordsLimit: 1005,
-			fileRecordsLimit: 1234,
+			fileRecordsLimit: FILE_RECORDS_LIMIT,
 			promptToStart: false,
+			totalRecordsLimit: TOTAL_RECORDS_LIMIT,
+			startFromOldest: true,
 		},
 	});
 
@@ -64,16 +68,20 @@ it('Downloads logs from real loki API', async () => {
 	expect(sortedDownloadFilesPaths.length).toBe(5);
 	expect(stateFilesPath.length).toBe(1);
 
-	const lastDownloadFile = await readFile(sortedDownloadFilesPaths.at(-1)!).then(content =>
-		content
-			.toString()
-			.split(EOL)
-			.filter(record => record.length > 0)
+	const downloadFiles = await Promise.all(
+		sortedDownloadFilesPaths.map(file =>
+			readFile(file).then(content =>
+				content
+					.toString()
+					.split(EOL)
+					.filter(record => record.length > 0)
+			)
+		)
 	);
 
-	const lastRecord = lastDownloadFile.at(-1);
+	const lastRecord = downloadFiles.at(-1)?.at(-1);
 
-	expect(lastRecord).toContain(`log line: ${totalRecordsLimit}`);
+	expect(lastRecord).toContain(`log line: ${TOTAL_RECORDS_LIMIT}`);
 });
 
 async function setupLoki({
@@ -99,7 +107,10 @@ async function setupLoki({
 	});
 
 	const checkData = async () => {
-		const response = await lokiClient.query_range({ query: findQuery });
+		const response = await lokiClient.query_range({
+			query: findQuery,
+			fetchDirection: FETCH_DIRECTION,
+		});
 
 		assert(response !== ABORT_SIGNAL);
 		assert(response.status === 'success');

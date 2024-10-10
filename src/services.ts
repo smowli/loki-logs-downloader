@@ -13,7 +13,7 @@ import { EOL } from 'os';
 import { dirname, join } from 'path';
 import { z } from 'zod';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
-import { createLokiClient } from './loki';
+import { createLokiClient, LokiFetchDirection } from './loki';
 import { nanosecondsToMilliseconds, secondsToMilliseconds } from './util';
 
 const stateSchema = z.object({
@@ -208,7 +208,7 @@ export interface FetcherResult {
 export interface Fetcher {
 	(options: {
 		from: bigint;
-		to: Date;
+		to: bigint;
 		query: string;
 		limit: number;
 		abort: AbortSignal;
@@ -216,12 +216,16 @@ export interface Fetcher {
 }
 
 export type FetcherFactory = {
-	create: (options: { lokiUrl: string; getAdditionalHeaders?: () => Headers }) => Fetcher;
+	create: (options: {
+		lokiUrl: string;
+		getAdditionalHeaders?: () => Headers;
+		fetchDirection: LokiFetchDirection;
+	}) => Fetcher;
 };
 
 export const createFetcherFactory = (): FetcherFactory => {
 	return {
-		create({ lokiUrl, getAdditionalHeaders }) {
+		create({ lokiUrl, getAdditionalHeaders, fetchDirection }) {
 			const lokiClient = createLokiClient(lokiUrl);
 
 			return async ({ query, limit, from, to, abort }) => {
@@ -236,6 +240,7 @@ export const createFetcherFactory = (): FetcherFactory => {
 					to,
 					additionalHeaders,
 					abort,
+					fetchDirection,
 				});
 
 				if (data === ABORT_SIGNAL) {

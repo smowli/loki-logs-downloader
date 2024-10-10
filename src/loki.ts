@@ -14,6 +14,11 @@ export class MaxEntriesLimitPerQueryExceeded extends UnrecoverableLokiApiError {
 	message = 'max entries limit per query exceeded';
 }
 
+export enum LokiFetchDirection {
+	'FORWARD' = 'FORWARD',
+	'BACKWARD' = 'BACKWARD',
+}
+
 const lokiStatusSchema = z.union([z.literal('success'), z.literal('error')]);
 
 /** https://grafana.com/docs/loki/latest/reference/loki-http-api/#statistics */
@@ -61,6 +66,7 @@ export const createLokiClient = (lokiUrl: string) => {
 			to,
 			additionalHeaders,
 			abort = null,
+			fetchDirection,
 		}: {
 			query: string;
 			limit?: number;
@@ -68,11 +74,12 @@ export const createLokiClient = (lokiUrl: string) => {
 			to?: Date | bigint | number;
 			additionalHeaders?: Headers | undefined;
 			abort?: AbortSignal | null | undefined;
+			fetchDirection: LokiFetchDirection;
 		}) => {
 			try {
 				const url = new URL(`${lokiUrl}/loki/api/v1/query_range`);
 
-				url.searchParams.set('direction', 'FORWARD');
+				url.searchParams.set('direction', fetchDirection);
 				url.searchParams.set('query', query);
 				if (limit) url.searchParams.set('limit', limit.toString());
 				if (from) url.searchParams.set('start', timestampUrlValue(from));

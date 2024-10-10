@@ -43,6 +43,11 @@
 			"minLength": 1,
 			"description": "Base URL of Loki API instance"
 		},
+		"startFromOldest": {
+			"type": "boolean",
+			"default": false,
+			"description": "If true, download logs in order from oldest to newest"
+		},
 		"coolDown": {
 			"type": ["number", "null"],
 			"default": 5000,

@@ -5,6 +5,7 @@ import { fromError } from 'zod-validation-error';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { FetcherFactory, FileSystem, Logger, StateStoreFactory } from './services';
 import { getNanoseconds, hoursToMs, wait } from './util';
+import { LokiFetchDirection } from './loki';
 
 const dateString = z.preprocess((v: unknown) => {
 	if (typeof v === 'string') return new Date(v);
@@ -45,6 +46,10 @@ export const zodConfigSchema = z.object({
 		.describe('Name of the folder that will contain the downloaded files'),
 	query: z.string().min(1).describe('A Loki query written in standard format.'),
 	lokiUrl: z.string().min(1).describe('Base URL of Loki API instance'),
+	startFromOldest: z
+		.boolean()
+		.default(false)
+		.describe('If true, download logs in order from oldest to newest'),
 	coolDown: z
 		.number()
 		.nullable()
@@ -170,6 +175,7 @@ export async function main({
 			orgId,
 			queryTags,
 			headers,
+			startFromOldest,
 		} = await readConfig(config, fs);
 
 		// ### remap variables
@@ -179,8 +185,14 @@ export async function main({
 		const totalRecordsLimit = limit || Infinity;
 		const recordsLimitPerFile = fileRecordsLimit || Infinity;
 
-		const toDate = to || new Date();
-		const fromDate = new Date(from?.getTime() || (to?.getTime() || Date.now()) - hoursToMs(1));
+		const fetchDirection = startFromOldest
+			? LokiFetchDirection.FORWARD
+			: LokiFetchDirection.BACKWARD;
+
+		const toDate = getNanoseconds(to || new Date());
+		const fromDate = getNanoseconds(
+			new Date(from?.getTime() || (to?.getTime() || Date.now()) - hoursToMs(1))
+		);
 
 		// ### prompt before starting the script
 
@@ -196,7 +208,7 @@ export async function main({
 
 		// ### loop variables
 
-		let startFromTimestamp = getNanoseconds(fromDate);
+		let startFromTimestamp = fetchDirection === 'FORWARD' ? fromDate : toDate;
 		let fileNumber = 0;
 		let totalRecords = 0;
 		let iteration = 0;
@@ -206,13 +218,14 @@ export async function main({
 		// ### state recovery
 
 		const stateStore = stateStoreFactory.create(
-			fromDate.toISOString(),
-			toDate.toISOString(),
+			String(fromDate),
+			String(toDate),
 			query,
 			lokiUrl,
 			recordsLimitPerFile.toString(),
 			outputName,
-			outputFolder
+			outputFolder,
+			String(startFromOldest)
 		);
 
 		const prevState = await stateStore.load();
@@ -263,6 +276,7 @@ export async function main({
 
 		const fetchRecords = fetcherFactory.create({
 			lokiUrl,
+			fetchDirection,
 			getAdditionalHeaders: () => {
 				const customHeaders = requestHeaders && Object.fromEntries(requestHeaders);
 
@@ -302,8 +316,8 @@ export async function main({
 			logger.info('⬇️', `fetching next ${fetchRecordCount} records`);
 
 			const { returnedRecords, pointer } = await fetchRecords({
-				from: startFromTimestamp,
-				to: toDate,
+				from: fetchDirection === 'FORWARD' ? startFromTimestamp : fromDate,
+				to: fetchDirection === 'BACKWARD' ? startFromTimestamp : toDate,
 				limit: fetchRecordCount,
 				query: query,
 				abort: abortController.signal,
