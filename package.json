@@ -13,13 +13,13 @@
 	"module": "./dist/sdk.mjs",
 	"types": "./dist/sdk.d.ts",
 	"bin": "./dist/cli.js",
-	"homepage": "https://github.com/vosmol/loki-logs-downloader/",
+	"homepage": "https://github.com/smowli/loki-logs-downloader/",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/vosmol/loki-logs-downloader/"
+		"url": "https://github.com/smowli/loki-logs-downloader/"
 	},
 	"bugs": {
-		"url": "https://github.com/vosmol/loki-logs-downloader/issues"
+		"url": "https://github.com/smowli/loki-logs-downloader/issues"
 	},
 	"release-it": {
 		"$schema": "https://unpkg.com/release-it/schema/release-it.json",
