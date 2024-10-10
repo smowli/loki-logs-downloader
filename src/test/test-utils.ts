@@ -1,4 +1,5 @@
-import { FetcherResult, Fetcher, LokiRecord } from '../services';
+import { LokiFetchDirection } from '../loki';
+import { FetcherResult, LokiRecord, FetcherFactory } from '../services';
 import { nanosecondsToMilliseconds, getNanoseconds } from '../util';
 
 export function createTestFetcherFactory(options: {
@@ -6,7 +7,7 @@ export function createTestFetcherFactory(options: {
 	customData?: (state: { called: number }) => FetcherResult;
 	onCalled?: (state: { called: number }) => void;
 }): {
-	create: (options: { lokiUrl: string }) => Fetcher;
+	create: FetcherFactory['create'];
 	testData: () => {
 		lastTimestamp: bigint | undefined;
 		batchTimestamps: { from: Date; to: Date }[];
@@ -16,8 +17,8 @@ export function createTestFetcherFactory(options: {
 	let lastTimestamp: bigint | undefined;
 	let called = 0;
 	const batchTimestamps: { from: Date; to: Date }[] = [];
-	let remainingRecords = options.totalRecords;
 	const aborted = false;
+	let generatedRecords = 0;
 
 	return {
 		testData: () => ({
@@ -26,7 +27,7 @@ export function createTestFetcherFactory(options: {
 			batchTimestamps,
 			aborted,
 		}),
-		create() {
+		create({ fetchDirection }) {
 			return async ({ from, limit, abort }) => {
 				called++;
 				options?.onCalled?.({ called });
@@ -35,7 +36,9 @@ export function createTestFetcherFactory(options: {
 					return { returnedRecords: [], pointer: undefined };
 				}
 
-				if (remainingRecords === 0) {
+				const remainingRecords = options.totalRecords - generatedRecords;
+
+				if (options.totalRecords - generatedRecords === 0) {
 					return { returnedRecords: [], pointer: undefined };
 				}
 
@@ -44,7 +47,10 @@ export function createTestFetcherFactory(options: {
 				const getRecord = (increment = 0) => {
 					const date = new Date(Number(nanosecondsToMilliseconds(from)) + increment);
 					return {
-						record: '-',
+						record:
+							fetchDirection === LokiFetchDirection.FORWARD
+								? `log line: ${remainingRecords - increment}`
+								: `log line: ${generatedRecords + increment + 1}`,
 						rawTimestamp: getNanoseconds(date),
 						timestamp: date,
 					};
@@ -67,7 +73,7 @@ export function createTestFetcherFactory(options: {
 				};
 
 				lastTimestamp = pointer.rawTimestamp;
-				remainingRecords -= recordCount;
+				generatedRecords += recordCount;
 
 				return data;
 			};
