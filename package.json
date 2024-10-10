@@ -1,7 +1,7 @@
 {
 	"name": "loki-logs-downloader",
 	"description": "Tool for downloading logs from Loki API",
-	"version": "3.1.0",
+	"version": "3.2.0",
 	"license": "MIT",
 	"keywords": [
 		"loki"
