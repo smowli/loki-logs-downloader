@@ -3,9 +3,10 @@ import prompts from 'prompts';
 import { z, ZodError } from 'zod';
 import { fromError } from 'zod-validation-error';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
+import { LokiFetchDirection } from './loki';
 import { FetcherFactory, FileSystem, Logger, StateStoreFactory } from './services';
 import { getNanoseconds, hoursToMs, wait } from './util';
-import { LokiFetchDirection } from './loki';
+import { UnrecoverableError } from './error';
 
 const dateString = z.preprocess((v: unknown) => {
 	if (typeof v === 'string') return new Date(v);
@@ -101,6 +102,7 @@ export interface MainOptions {
 	fetcherFactory: FetcherFactory;
 	config: Partial<Config>;
 	abortController?: AbortController | undefined;
+	runtime?: 'sdk' | 'cli';
 }
 
 /** use json config file instead cmd params if configured */
@@ -114,21 +116,19 @@ export async function readConfig(config: Partial<Config>, fs: FileSystem): Promi
 	return zodConfigSchema.parse(fileConfig || config);
 }
 
-export function catchZodError(error: unknown, logger: Logger) {
-	if (error instanceof ZodError) {
-		const readableError = fromError(error);
+export function retrieveAndLogZodError(error: unknown, logger: Logger) {
+	const readableError = fromError(error);
 
-		// TODO: This also catches loki api parsing errors and similar stuff
+	const msg = readableError.toString().replace('Validation error:', '').trim();
 
-		logger.error(
-			'🛑',
-			'Some provided options are invalid:',
-			readableError.toString().replace('Validation error:', '').trim()
-		);
+	logger.error('🛑', 'Some provided options are invalid:', msg);
 
-		process.exit(1);
-	}
+	return msg;
 }
+
+export class DownloadCancelledByUserError extends UnrecoverableError {}
+export class OutputDirNotEmptyError extends UnrecoverableError {}
+export class InvalidConfigError extends UnrecoverableError {}
 
 export async function main({
 	logger,
@@ -137,6 +137,7 @@ export async function main({
 	fetcherFactory,
 	config,
 	abortController: ownAbortController,
+	runtime = 'sdk',
 }: MainOptions) {
 	// ### setup graceful shutdown
 
@@ -203,7 +204,13 @@ export async function main({
 				message: `Start the download?`,
 			});
 
-			if (!startDownload.start) process.exit(1);
+			if (!startDownload.start) {
+				if (runtime === 'sdk') {
+					throw new DownloadCancelledByUserError('Download canceled by the user');
+				}
+
+				process.exit(1);
+			}
 		}
 
 		// ### loop variables
@@ -259,10 +266,14 @@ export async function main({
 				});
 
 				if (!response.delete) {
-					logger.info(
-						'🚧',
-						`can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again`
-					);
+					const msg = `can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again`;
+
+					logger.error('🚧', msg);
+
+					if (runtime === 'sdk') {
+						throw new OutputDirNotEmptyError(msg);
+					}
+
 					process.exit(1);
 				}
 			}
@@ -277,6 +288,7 @@ export async function main({
 		const fetchRecords = fetcherFactory.create({
 			lokiUrl,
 			fetchDirection,
+			logger,
 			getAdditionalHeaders: () => {
 				const customHeaders = requestHeaders && Object.fromEntries(requestHeaders);
 
@@ -391,9 +403,15 @@ export async function main({
 			return;
 		}
 
-		// TODO: Better error handling
+		if (error instanceof ZodError) {
+			const msg = retrieveAndLogZodError(error, logger);
 
-		catchZodError(error, logger);
+			if (runtime === 'sdk') {
+				throw new InvalidConfigError(msg);
+			}
+
+			process.exit(1);
+		}
 
 		throw error;
 	} finally {

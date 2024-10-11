@@ -1,17 +1,28 @@
-import { z } from 'zod';
+import { EOL } from 'os';
+import { z, ZodError } from 'zod';
 import { ABORT_SIGNAL } from './constants';
-import { BaseError, UnrecoverableError } from './error';
+import { StandardError, UnrecoverableError } from './error';
+import { configKey } from './util';
 
 export const LOKI_API_ERRORS = {
 	queryMaxLimit: 'max entries limit per query exceeded',
 };
 
-export class LokiApiError extends BaseError {}
+export class LokiApiError extends StandardError {}
 
 export class UnrecoverableLokiApiError extends UnrecoverableError {}
 
-export class MaxEntriesLimitPerQueryExceeded extends UnrecoverableLokiApiError {
-	message = 'max entries limit per query exceeded';
+export class MaxEntriesLimitPerQueryExceededError extends UnrecoverableLokiApiError {
+	message = `max entries limit per query exceeded. Please configure lower ${configKey('batchRecordsLimit')}`;
+}
+
+export class UnexpectedResponseSchemaError extends UnrecoverableLokiApiError {
+	message = `Loki API returned unexpected structure of the data. Is the ${configKey('lokiUrl')} correct?`;
+
+	constructor(detail: string) {
+		super();
+		this.message = `${this.message} Error detail: ${detail}`;
+	}
 }
 
 export enum LokiFetchDirection {
@@ -92,7 +103,7 @@ export const createLokiClient = (lokiUrl: string) => {
 				if (!response.ok) {
 					const responseText = await response.text();
 					if (responseText.includes(LOKI_API_ERRORS.queryMaxLimit)) {
-						throw new MaxEntriesLimitPerQueryExceeded();
+						throw new MaxEntriesLimitPerQueryExceededError();
 					}
 
 					throw new LokiApiError(responseText);
@@ -106,6 +117,11 @@ export const createLokiClient = (lokiUrl: string) => {
 			} catch (error) {
 				if (error === ABORT_SIGNAL) {
 					return ABORT_SIGNAL;
+				}
+
+				if (error instanceof ZodError) {
+					// Show first 50 error lines
+					throw new UnexpectedResponseSchemaError(error.message.split(EOL).slice(0, 30).join(EOL));
 				}
 
 				throw error;

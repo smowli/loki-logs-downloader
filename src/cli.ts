@@ -1,24 +1,25 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
-import { catchZodError, Config, main } from './main';
+import { EOL } from 'os';
+import configJsonSchema from '../config-schema.json';
+import pkg from '../package.json';
+import { Config, main, retrieveAndLogZodError, zodConfigSchema } from './main';
 import {
 	createFetcherFactory,
 	createFileSystem,
 	createLogger,
 	createStateStoreFactory,
 } from './services';
-import { zodConfigSchema } from './main';
-import configJsonSchema from '../config-schema.json';
-import pkg from '../package.json';
+import { ZodError } from 'zod';
 
 const schema = configJsonSchema.properties;
 
 const toNumber = (v: string) => Number(v);
 
-const wrap = (...messages: string[]) => `${messages.join('\n')}\n\n`;
+const wrap = (...messages: string[]) => `${messages.join(EOL)}${EOL}${EOL}`;
 
-console.log(`\n=== Loki log downloader version: ${pkg.version} 👋 ===\n`);
+console.log(`${EOL}=== Loki log downloader version: ${pkg.version} 👋 ===${EOL}`);
 
 program
 	// ==================================================
@@ -80,11 +81,13 @@ program
 				logger,
 				fileSystem,
 				config: params,
+				runtime: 'cli',
 			});
 		} catch (error) {
-			catchZodError(error, logger);
-
-			// TODO: Better error handling
+			if (error instanceof ZodError) {
+				retrieveAndLogZodError(error, logger);
+				process.exit(1);
+			}
 
 			throw error;
 		}
