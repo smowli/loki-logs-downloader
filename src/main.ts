@@ -1,11 +1,10 @@
 import { join } from 'path';
 import prompts from 'prompts';
 import { z, ZodError } from 'zod';
-import { fromError } from 'zod-validation-error';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { LokiFetchDirection } from './loki';
 import { FetcherFactory, FileSystem, Logger, StateStoreFactory } from './services';
-import { getNanoseconds, hoursToMs, wait } from './util';
+import { getNanoseconds, hoursToMs, retrieveZodError, wait } from './util';
 import { UnrecoverableError } from './error';
 
 const dateString = z.preprocess((v: unknown) => {
@@ -116,19 +115,8 @@ export async function readConfig(config: Partial<Config>, fs: FileSystem): Promi
 	return zodConfigSchema.parse(fileConfig || config);
 }
 
-export function retrieveAndLogZodError(error: unknown, logger: Logger) {
-	const readableError = fromError(error);
-
-	const msg = readableError.toString().replace('Validation error:', '').trim();
-
-	logger.error('🛑', 'Some provided options are invalid:', msg);
-
-	return msg;
-}
-
 export class DownloadCancelledByUserError extends UnrecoverableError {}
 export class OutputDirNotEmptyError extends UnrecoverableError {}
-export class InvalidConfigError extends UnrecoverableError {}
 
 export async function main({
 	logger,
@@ -268,11 +256,11 @@ export async function main({
 				if (!response.delete) {
 					const msg = `can't progress without emptying the ${outputDirPath} directory. Please backup the files somewhere else and run the command again`;
 
-					logger.error('🚧', msg);
-
 					if (runtime === 'sdk') {
 						throw new OutputDirNotEmptyError(msg);
 					}
+
+					logger.error('🚧', msg);
 
 					process.exit(1);
 				}
@@ -404,11 +392,11 @@ export async function main({
 		}
 
 		if (error instanceof ZodError) {
-			const msg = retrieveAndLogZodError(error, logger);
-
 			if (runtime === 'sdk') {
-				throw new InvalidConfigError(msg);
+				throw error;
 			}
+
+			logger.error('🛑', 'Some provided options are invalid:', retrieveZodError(error));
 
 			process.exit(1);
 		}

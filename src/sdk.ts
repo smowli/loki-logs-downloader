@@ -1,5 +1,4 @@
-import { ZodError } from 'zod';
-import { Config, InvalidConfigError, main, retrieveAndLogZodError, zodConfigSchema } from './main';
+import { Config, main, zodConfigSchema } from './main';
 import {
 	createFetcherFactory,
 	createFileSystem,
@@ -12,8 +11,9 @@ import {
 export { createFileSystem, createLogger } from './services';
 
 // Export error types
+export { ZodError } from 'zod';
 export { StandardError, UnrecoverableError } from './error';
-export { InvalidConfigError, OutputDirNotEmptyError, DownloadCancelledByUserError } from './main';
+export { OutputDirNotEmptyError, DownloadCancelledByUserError } from './main';
 
 export const download = async (options: {
 	logger?: Logger;
@@ -36,10 +36,6 @@ export const download = async (options: {
 			runtime: 'sdk',
 		});
 	} catch (error) {
-		if (error instanceof ZodError) {
-			throw new InvalidConfigError(retrieveAndLogZodError(error, logger));
-		}
-
 		throw error;
 	}
 };

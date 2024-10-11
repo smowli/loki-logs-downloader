@@ -2,16 +2,17 @@
 
 import { program } from 'commander';
 import { EOL } from 'os';
+import { ZodError } from 'zod';
 import configJsonSchema from '../config-schema.json';
 import pkg from '../package.json';
-import { Config, main, retrieveAndLogZodError, zodConfigSchema } from './main';
+import { Config, main, zodConfigSchema } from './main';
 import {
 	createFetcherFactory,
 	createFileSystem,
 	createLogger,
 	createStateStoreFactory,
 } from './services';
-import { ZodError } from 'zod';
+import { retrieveZodError } from './util';
 
 const schema = configJsonSchema.properties;
 
@@ -85,7 +86,8 @@ program
 			});
 		} catch (error) {
 			if (error instanceof ZodError) {
-				retrieveAndLogZodError(error, logger);
+				logger.error('🛑', 'Some provided options are invalid:', retrieveZodError(error));
+
 				process.exit(1);
 			}
 

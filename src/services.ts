@@ -277,7 +277,7 @@ export const createFetcherFactory = (): FetcherFactory => {
 						retryDelay: 1000,
 						increaseDelay: true,
 						onRetry: (error, { remainingAttempts, delay }) => {
-							logger.error(
+							logger.info(
 								'😬',
 								`fetching logs failed, retrying in ${delay}ms, remaining attempts: ${remainingAttempts}`
 							);
