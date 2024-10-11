@@ -7,13 +7,14 @@ import {
 	FileSystem,
 	Logger,
 } from './services';
+import { getPkg } from './util';
 
 export { createFileSystem, createLogger } from './services';
 
 // Export error types
 export { ZodError } from 'zod';
 export { StandardError, UnrecoverableError } from './error';
-export { OutputDirNotEmptyError, DownloadCancelledByUserError } from './main';
+export { DownloadCancelledByUserError, OutputDirNotEmptyError } from './main';
 
 export const download = async (options: {
 	logger?: Logger;
@@ -34,6 +35,7 @@ export const download = async (options: {
 			abortController: options.abortController,
 			config: options.config,
 			runtime: 'sdk',
+			version: getPkg().version,
 		});
 	} catch (error) {
 		throw error;

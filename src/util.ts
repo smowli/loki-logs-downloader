@@ -1,6 +1,11 @@
 import { fromError } from 'zod-validation-error';
 import { UnrecoverableError } from './error';
 import { Config } from './main';
+import { version, name, description } from '../package.json';
+
+export function getPkg() {
+	return { version, name, description };
+}
 
 export async function wait(time: number) {
 	return new Promise(res => {

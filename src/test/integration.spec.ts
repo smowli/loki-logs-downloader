@@ -13,7 +13,9 @@ import {
 	createLogger,
 	createStateStoreFactory,
 } from '../services';
-import { getNanoseconds, retry, wait } from '../util';
+import { getNanoseconds, getPkg, retry, wait } from '../util';
+
+const pgk = getPkg();
 
 const lokiUrl = DEFAULT_LOKI_URL;
 const LABELS = { app: 'test' };
@@ -45,6 +47,7 @@ it('Downloads logs from real loki API', async () => {
 		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 		fileSystem,
 		logger,
+		version: pgk.version,
 		config: {
 			query: TEST_QUERY,
 			lokiUrl: lokiUrl,
