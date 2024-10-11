@@ -6,8 +6,10 @@ import { beforeAll, beforeEach, describe, expect, it, vitest } from 'vitest';
 import { DEFAULT_LOKI_URL, FOLDERS } from '../constants';
 import { Config, main } from '../main';
 import { State, createFileSystem, createLogger, createStateStoreFactory } from '../services';
-import { retry } from '../util';
+import { getPkg, retry } from '../util';
 import { createTestFetcherFactory } from './test-utils';
+
+const pgk = getPkg();
 
 const ROOT_OUTPUT_DIR = 'test-outputs';
 const OUTPUT_NAME = 'download';
@@ -47,6 +49,7 @@ it(`downloads logs with BACKWARD direction & outputs files with correct data`, a
 		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 		fileSystem,
 		logger,
+		version: pgk.version,
 		config: {
 			outputName: OUTPUT_NAME,
 			query: '{app="test"}',
@@ -141,6 +144,7 @@ it(`supports FORWARD direction`, async () => {
 		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 		fileSystem,
 		logger,
+		version: pgk.version,
 		config: {
 			outputName: OUTPUT_NAME,
 			query: '{app="test"}',
@@ -234,6 +238,7 @@ it(`downloads logs & recovers state`, async () => {
 			stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 			fileSystem,
 			logger,
+			version: pgk.version,
 			config: {
 				outputName: OUTPUT_NAME,
 				query: '{app="test"}',
@@ -328,6 +333,7 @@ it('aborts properly on abort signal', async () => {
 		fileSystem,
 		logger,
 		abortController,
+		version: pgk.version,
 		config: {
 			outputName: OUTPUT_NAME,
 			query: '{app="test"}',
@@ -377,6 +383,7 @@ it('uses config file if option is set', async () => {
 		stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 		fileSystem,
 		logger,
+		version: pgk.version,
 		config: {
 			configFile: configFilePath,
 		},
@@ -412,6 +419,7 @@ describe('different configs', () => {
 				stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 				fileSystem,
 				logger,
+				version: pgk.version,
 				config: {
 					outputName: OUTPUT_NAME,
 					query: '{app="test"}',
@@ -497,6 +505,7 @@ describe('state files', () => {
 					stateStoreFactory: createStateStoreFactory({ fileSystem, logger }),
 					fileSystem,
 					logger,
+					version: pgk.version,
 					config: {
 						outputName: OUTPUT_NAME,
 						query: '{app="test"}',

@@ -102,6 +102,7 @@ export interface MainOptions {
 	config: Partial<Config>;
 	abortController?: AbortController | undefined;
 	runtime?: 'sdk' | 'cli';
+	version: string;
 }
 
 /** use json config file instead cmd params if configured */
@@ -126,6 +127,7 @@ export async function main({
 	config,
 	abortController: ownAbortController,
 	runtime = 'sdk',
+	version,
 }: MainOptions) {
 	// ### setup graceful shutdown
 
@@ -220,7 +222,8 @@ export async function main({
 			recordsLimitPerFile.toString(),
 			outputName,
 			outputFolder,
-			String(startFromOldest)
+			String(startFromOldest),
+			String(version)
 		);
 
 		const prevState = await stateStore.load();

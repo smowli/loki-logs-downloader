@@ -4,7 +4,6 @@ import { program } from 'commander';
 import { EOL } from 'os';
 import { ZodError } from 'zod';
 import configJsonSchema from '../config-schema.json';
-import pkg from '../package.json';
 import { Config, main, zodConfigSchema } from './main';
 import {
 	createFetcherFactory,
@@ -12,13 +11,15 @@ import {
 	createLogger,
 	createStateStoreFactory,
 } from './services';
-import { retrieveZodError } from './util';
+import { getPkg, retrieveZodError } from './util';
 
 const schema = configJsonSchema.properties;
 
 const toNumber = (v: string) => Number(v);
 
 const wrap = (...messages: string[]) => `${messages.join(EOL)}${EOL}${EOL}`;
+
+const pkg = getPkg();
 
 console.log(`${EOL}=== Loki log downloader version: ${pkg.version} 👋 ===${EOL}`);
 
@@ -83,6 +84,7 @@ program
 				fileSystem,
 				config: params,
 				runtime: 'cli',
+				version: pkg.version,
 			});
 		} catch (error) {
 			if (error instanceof ZodError) {
