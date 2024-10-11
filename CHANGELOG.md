@@ -1,3 +1,22 @@
+## [4.0.0](https://github.com/smowli/loki-logs-downloader/compare/3.2.0...4.0.0) (2024-10-11)
+
+### ⚠ BREAKING CHANGES
+
+- use release version in state integrity key
+- same errors don't log and straight throw
+- improve error handling
+- support both query directions
+
+### refactor
+
+- same errors don't log and straight throw ([e3397f7](https://github.com/smowli/loki-logs-downloader/commit/e3397f70af3bac6ea4234fc01d15242a425e2e75))
+
+### Features 🚀
+
+- improve error handling ([bc5772c](https://github.com/smowli/loki-logs-downloader/commit/bc5772cf8e8fb672f20f10b52a46e7d9f2f38e82))
+- support both query directions ([5031488](https://github.com/smowli/loki-logs-downloader/commit/5031488283c91b2f9af8971ce0d49da444fbf5f6))
+- use release version in state integrity key ([2eb59f0](https://github.com/smowli/loki-logs-downloader/commit/2eb59f01a9091c47473b708b5fbd7072b14c462a))
+
 ## [3.2.0](https://github.com/smowli/loki-logs-downloader/compare/3.1.0...3.2.0) (2024-10-10)
 
 ### Features 🚀
