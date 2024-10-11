@@ -1,3 +1,4 @@
+import { fromError } from 'zod-validation-error';
 import { UnrecoverableError } from './error';
 import { Config } from './main';
 
@@ -11,6 +12,14 @@ export async function wait(time: number) {
 
 export function configKey<T extends keyof Config>(key: T) {
 	return key;
+}
+
+export function retrieveZodError(error: unknown) {
+	const readableError = fromError(error);
+
+	const msg = readableError.toString().replace('Validation error:', '').trim();
+
+	return msg;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
