@@ -4,8 +4,8 @@ import {
 	ensureDir,
 	exists,
 	pathExists,
-	readFile,
 	readdir,
+	readFile,
 	writeFile,
 } from 'fs-extra';
 import md5 from 'md5';
@@ -14,7 +14,7 @@ import { dirname, join } from 'path';
 import { z } from 'zod';
 import { ABORT_SIGNAL, FOLDERS } from './constants';
 import { createLokiClient, LokiFetchDirection } from './loki';
-import { nanosecondsToMilliseconds, secondsToMilliseconds } from './util';
+import { nanosecondsToMilliseconds, retry, secondsToMilliseconds } from './util';
 
 const stateSchema = z.object({
 	startFromTimestamp: z.string(),
@@ -220,54 +220,70 @@ export type FetcherFactory = {
 		lokiUrl: string;
 		getAdditionalHeaders?: () => Headers;
 		fetchDirection: LokiFetchDirection;
+		logger: Logger;
 	}) => Fetcher;
 };
 
 export const createFetcherFactory = (): FetcherFactory => {
 	return {
-		create({ lokiUrl, getAdditionalHeaders, fetchDirection }) {
+		create({ lokiUrl, getAdditionalHeaders, fetchDirection, logger }) {
 			const lokiClient = createLokiClient(lokiUrl);
 
 			return async ({ query, limit, from, to, abort }) => {
-				const recordCount = limit + 1; // +1 for pointer
+				return await retry(
+					3,
+					async () => {
+						const recordCount = limit + 1; // +1 for pointer
 
-				const additionalHeaders = getAdditionalHeaders?.();
+						const additionalHeaders = getAdditionalHeaders?.();
 
-				const data = await lokiClient.query_range({
-					query,
-					limit: recordCount,
-					from,
-					to,
-					additionalHeaders,
-					abort,
-					fetchDirection,
-				});
+						const data = await lokiClient.query_range({
+							query,
+							limit: recordCount,
+							from,
+							to,
+							additionalHeaders,
+							abort,
+							fetchDirection,
+						});
 
-				if (data === ABORT_SIGNAL) {
-					return { returnedRecords: [], pointer: undefined };
-				}
+						if (data === ABORT_SIGNAL) {
+							return { returnedRecords: [], pointer: undefined };
+						}
 
-				const output = data.data.result.flatMap(result => {
-					return result.values.flatMap(([timestamp, record]): LokiRecord => {
-						// loki API returns different format for each resultType
-						const date = new Date(
-							data.data.resultType === 'matrix'
-								? secondsToMilliseconds(Number(timestamp))
-								: nanosecondsToMilliseconds(Number(timestamp))
-						);
+						const output = data.data.result.flatMap(result => {
+							return result.values.flatMap(([timestamp, record]): LokiRecord => {
+								// loki API returns different format for each resultType
+								const date = new Date(
+									data.data.resultType === 'matrix'
+										? secondsToMilliseconds(Number(timestamp))
+										: nanosecondsToMilliseconds(Number(timestamp))
+								);
 
-						return {
-							timestamp: date,
-							rawTimestamp: BigInt(timestamp),
-							record,
-						};
-					});
-				});
+								return {
+									timestamp: date,
+									rawTimestamp: BigInt(timestamp),
+									record,
+								};
+							});
+						});
 
-				const pointer = output.at(-1) as LokiRecord | undefined;
-				const returnedRecords = output.slice(0, limit) as LokiRecord[];
+						const pointer = output.at(-1) as LokiRecord | undefined;
+						const returnedRecords = output.slice(0, limit) as LokiRecord[];
 
-				return { returnedRecords, pointer };
+						return { returnedRecords, pointer };
+					},
+					{
+						retryDelay: 1000,
+						increaseDelay: true,
+						onRetry: (error, { remainingAttempts, delay }) => {
+							logger.error(
+								'😬',
+								`fetching logs failed, retrying in ${delay}ms, remaining attempts: ${remainingAttempts}`
+							);
+						},
+					}
+				);
 			};
 		},
 	};
